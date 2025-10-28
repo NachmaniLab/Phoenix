@@ -108,17 +108,19 @@ def summarise_result(target, set_name, top_genes, set_size, feature_selection, p
     return {key: convert_to_str(value) for key, value in result.items()}
 
 
-def read_results(title: str, output_path: str, index_col=None) -> pd.DataFrame | None:
+def read_results(title: str, output_path: str, index_col: int | None = None, raise_err: bool = False) -> pd.DataFrame | None:
     try:
         title = f'{title}.csv' if '.csv' not in title else title
         return read_csv(os.path.join(output_path, f'{make_valid_filename(title)}'), index_col=index_col)
-    except:
+    except Exception as e:
+        if raise_err:
+            raise e
         return None
 
 
 def get_preprocessed_data(data: pd.DataFrame | str, output_path: str):
     if isinstance(data, str):
-        data = read_results(data, output_path, index_col=0)
+        data = read_results(data, output_path, index_col=0, raise_err=True)
     return data
 
 

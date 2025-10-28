@@ -1,3 +1,4 @@
+import os
 import warnings
 import sys
 import random
@@ -229,7 +230,8 @@ def run_batch(
     regression = pd.DataFrame(regression_results)
 
     # Add effect size
-    expression = get_preprocessed_data('expression', output)  # not scaled
+    main_output_path = output if not batch else os.path.dirname(output)
+    expression = get_preprocessed_data('expression', main_output_path)  # not scaled
     masked_expression = expression.mask(expression <= effect_size_threshold)
     classification['effect_size'] = classification.apply(calculate_cell_type_effect_size, axis=1, masked_expression=masked_expression, cell_types=cell_types)
     regression['effect_size'] = regression.apply(calculate_pseudotime_effect_size, axis=1, masked_expression=masked_expression, pseudotime=scaled_pseudotime)
