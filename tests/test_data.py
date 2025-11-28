@@ -220,12 +220,24 @@ class PreprocessingTest(Test):
         )
 
         mean_min1 = 6
-        mean_max = 7
-        assert effect_size[0] == mean_max - mean_min1
+        mean_max1 = 7
+        assert effect_size[0] == mean_max1 - mean_min1
 
-        mean_min2 = np.mean([np.mean([12, 17, 22]), np.mean([14, 19, 24])])
-        mean_max2 = np.mean([np.mean([13, 18, 23]), np.mean([15, 20, 25])])
-        assert effect_size[1] == mean_max2 - mean_min2
+        # window size = 2
+        # target2 ordered cells: cell2 -> cell4 -> cell5 -> cell3
+
+        # first window: cell2, cell4
+        mean1 = np.mean([np.mean([12, 17, 22]), np.mean([14, 19, 24])])
+        # second window: cell4, cell5
+        mean2 = np.mean([np.mean([14, 19, 24]), np.mean([15, 20, 25])])
+        # third window: cell5, cell3
+        mean3 = np.mean([np.mean([15, 20, 25]), np.mean([13, 18, 23])])
+        
+        orig_mean = mean1
+        diff2 = abs(mean2 - orig_mean)
+        diff3 = abs(mean3 - orig_mean)
+        max_mean = mean2 if diff2 >= diff3 else mean3
+        assert effect_size[1] == max_mean - orig_mean
 
 
 if __name__ == '__main__':

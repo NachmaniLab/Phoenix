@@ -111,7 +111,7 @@ def summarise_result(target, set_name, top_genes, set_size, feature_selection, p
 def read_results(title: str, output_path: str, index_col: int | None = None, raise_err: bool = False) -> pd.DataFrame | None:
     try:
         title = f'{title}.csv' if '.csv' not in title else title
-        return read_csv(os.path.join(output_path, f'{make_valid_filename(title)}'), index_col=index_col)
+        return read_csv(os.path.join(output_path, f'{make_valid_filename(title)}'), index_col=index_col)  # type: ignore[arg-type]
     except Exception as e:
         if raise_err:
             raise e

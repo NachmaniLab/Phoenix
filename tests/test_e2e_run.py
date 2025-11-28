@@ -5,7 +5,6 @@ warnings.simplefilter('ignore', PendingDeprecationWarning)
 import unittest
 import shutil
 import os
-from unittest.mock import patch
 import pandas as pd
 import numpy as np
 

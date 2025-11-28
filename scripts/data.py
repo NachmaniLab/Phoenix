@@ -181,12 +181,19 @@ def calculate_pseudotime_effect_size(row, masked_expression, pseudotime, percent
 
     pseudotime_cells = pseudotime[target].dropna().sort_values(ascending=True).index
     size = int(np.ceil(len(pseudotime_cells) * percentile))
-    min_cells = pseudotime_cells[:size]
-    max_cells = pseudotime_cells[-size:]
+    
+    orig_cells = pseudotime_cells[:size]
+    orig_sum = mean_gene_expression(masked_expression.loc[orig_cells, genes]).mean()
 
-    min_sum = mean_gene_expression(masked_expression.loc[min_cells, genes]).mean()
-    max_sum = mean_gene_expression(masked_expression.loc[max_cells, genes]).mean()
+    max_change, max_sum = np.nan, np.nan
+    for i in range(1, len(pseudotime_cells) - size + 1):
+        curr_cells = pseudotime_cells[i:i+size]
+        curr_sum = mean_gene_expression(masked_expression.loc[curr_cells, genes]).mean()
+        curr_change = abs(curr_sum - orig_sum)
+        if np.isnan(max_change) or curr_change > max_change:
+            max_change = curr_change
+            max_sum = curr_sum
 
-    if np.isnan(min_sum) or np.isnan(max_sum):
+    if np.isnan(orig_sum) or np.isnan(max_sum):
         return 0.0
-    return max_sum - min_sum
+    return max_sum - orig_sum
