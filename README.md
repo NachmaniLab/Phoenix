@@ -70,7 +70,7 @@ Customize preprocessing parameters:
 
 Customize feature selection parameters:
 
-* `feature_selection`: Feature selection method applied to each gene set: `ANOVA` or `RF`. Default: `ANOVA`.
+* `feature_selection`: Feature selection method applied to each gene set: `RF` or `ANOVA`. Default: `RF`.
 * `set_fraction`: Fraction of genes to select from each gene set. Default: `0.75`.
 * `min_set_size`: Minimum number of genes to select from each gene set. Default: `1`.
 

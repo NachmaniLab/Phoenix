@@ -46,7 +46,7 @@ class TrainDataTest(Test):
 
     def test_data_without_selection(self):
         # Test case where using cell_types and cell_type
-        X, _, features = get_train_data(
+        X, _, features, importances = get_train_data(
             self.scaled_expression,
             features=self.scaled_expression.columns, 
             cell_types=self.cell_types,
@@ -56,19 +56,8 @@ class TrainDataTest(Test):
         )
 
         self.assertEqual(X.shape, self.scaled_expression.shape)
-        self.assertListEqual(features, self.scaled_expression.columns.tolist())
-
-        X, _, features = get_train_data(
-            self.scaled_expression,
-            features=self.scaled_expression.columns, 
-            cell_types=self.cell_types,
-            cell_type='TypeA',
-            set_size=self.scaled_expression.shape[1],  # all
-            feature_selection='RF'
-        )
-
-        self.assertEqual(X.shape, self.scaled_expression.shape)
-        self.assertListEqual(features, self.scaled_expression.columns.tolist())
+        self.assertListEqual(sorted(features), sorted(self.scaled_expression.columns.tolist()))
+        self.assertIsNone(importances)
 
     def test_cell_type_data_with_anova(self):
         # Test case where using cell_types and cell_type
@@ -77,7 +66,7 @@ class TrainDataTest(Test):
         for cell_type in ['All', 'TypeA', 'TypeB']:
 
             set_size = 4
-            X, y, selected_genes = get_train_data(
+            X, y, selected_genes, importances = get_train_data(
                 self.scaled_expression,
                 features=self.scaled_expression.columns, 
                 cell_types=self.cell_types,
@@ -89,10 +78,11 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
+            self.assertEqual(len(importances), set_size)
             self.assertTrue('Gene4' not in selected_genes)
 
             set_size = 3
-            X, y, selected_genes = get_train_data(
+            X, y, selected_genes, importances = get_train_data(
                 self.scaled_expression,
                 features=['Gene1', 'Gene3', 'Gene2', 'Gene4', 'Gene5'], 
                 cell_types=self.cell_types,
@@ -104,10 +94,11 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
+            self.assertEqual(len(importances), set_size)
             self.assertEqual(selected_genes, ['Gene3', 'Gene2', 'Gene5']) # SelectKBest does not change order of features
 
             set_size = 2
-            X, y, selected_genes = get_train_data(
+            X, y, selected_genes, importances = get_train_data(
                 self.scaled_expression,
                 features=self.scaled_expression.columns, 
                 cell_types=self.cell_types,
@@ -119,9 +110,10 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
+            self.assertEqual(len(importances), set_size)
             self.assertEqual(selected_genes, ['Gene2', 'Gene5']) # SelectKBest does not change order of features
 
-            X, y, selected_genes = get_train_data(
+            X, y, selected_genes, importances = get_train_data(
                 self.scaled_expression,
                 features=['Gene1', 'Gene3', 'Gene5'],  # missing good predictor Gene2
                 cell_types=self.cell_types,
@@ -133,15 +125,17 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
+            self.assertEqual(len(importances), set_size)
             self.assertEqual(selected_genes, ['Gene3', 'Gene5']) # SelectKBest does not change order of features
             
     def test_cell_type_data_with_rf(self):
+        # Test case where using cell_types and cell_type
         cell_dim = self.scaled_expression.shape[0]
 
         for cell_type in ['All', 'TypeA', 'TypeB']:
 
             set_size = self.scaled_expression.shape[1] - 1
-            X, y, selected_genes = get_train_data(
+            X, y, selected_genes, importances = get_train_data(
                 self.scaled_expression,
                 features=self.scaled_expression.columns, 
                 cell_types=self.cell_types,
@@ -153,14 +147,16 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
+            self.assertEqual(len(importances), set_size)
 
             # RandomForestClassifier orders features by importance:
+            self.assertTrue(importances == sorted(importances, reverse=True))
             self.assertTrue(selected_genes[0] in ['Gene5', 'Gene2']) 
             self.assertTrue(selected_genes[1] in ['Gene5', 'Gene2'])
             self.assertTrue('Gene4' not in selected_genes) 
 
             set_size = self.scaled_expression.shape[1] - 2
-            X, y, selected_genes = get_train_data(
+            X, y, selected_genes, importances = get_train_data(
                 self.scaled_expression,
                 features=[g for g in self.scaled_expression.columns if g != 'Gene2'], 
                 cell_types=self.cell_types,
@@ -170,6 +166,8 @@ class TrainDataTest(Test):
             )
 
             self.assertEqual(len(selected_genes), set_size)
+            self.assertEqual(len(importances), set_size)
+            self.assertTrue(importances == sorted(importances, reverse=True))
             self.assertTrue(selected_genes[0] == 'Gene5') 
             self.assertTrue('Gene4' not in selected_genes) 
 
@@ -179,7 +177,7 @@ class TrainDataTest(Test):
         lineage = 1
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
         set_size = 1
-        X, y, selected_genes = get_train_data(
+        X, y, selected_genes, importances = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -191,12 +189,13 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
+        self.assertEqual(len(importances), set_size)
         self.assertTrue(selected_genes[0] == 'Gene1')  # Gene1 increases across time in lineage 1
 
         lineage = 2
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
         set_size = 3
-        X, y, selected_genes = get_train_data(
+        X, y, selected_genes, importances = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -208,6 +207,7 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
+        self.assertEqual(len(importances), set_size)
         self.assertEqual(selected_genes, ['Gene2', 'Gene3', 'Gene5'])  # these 3 genes increase / decrease according to pseudotime order (and SelectKBest does not change order of features)
 
     def test_pseudotime_data_with_rf(self):
@@ -217,7 +217,7 @@ class TrainDataTest(Test):
 
         lineage = 1
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
-        X, y, selected_genes = get_train_data(
+        X, y, selected_genes, importances = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -229,11 +229,13 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
+        self.assertEqual(len(importances), set_size)
+        self.assertTrue(importances == sorted(importances, reverse=True))
         self.assertTrue(selected_genes[0] == 'Gene1')  # Gene1 increases across time in lineage 1
 
         lineage = 2
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
-        X, y, selected_genes = get_train_data(
+        X, y, selected_genes, importances = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -245,8 +247,38 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
+        self.assertEqual(len(importances), set_size)
+        self.assertTrue(importances == sorted(importances, reverse=True))
         self.assertEqual(selected_genes[0], 'Gene1')  # changes across each pseudotime step
         self.assertTrue('Gene4' not in selected_genes)  # does not change across pseudotime order
+
+    def test_data_with_full_size_selection(self):
+        X, _, features, importances = get_train_data(
+            self.scaled_expression,
+            features=self.scaled_expression.columns, 
+            cell_types=self.cell_types,
+            cell_type='TypeA',
+            set_size=self.scaled_expression.shape[1] + 100,  # more
+            feature_selection='RF'
+        )
+
+        self.assertEqual(X.shape, self.scaled_expression.shape)
+        self.assertListEqual(sorted(features), sorted(self.scaled_expression.columns.tolist()))  # RF sorts features by importance
+        self.assertTrue(importances == sorted(importances, reverse=True))
+        self.assertEqual(len(importances), self.scaled_expression.shape[1])
+
+        X, _, features, importances = get_train_data(
+            self.scaled_expression,
+            features=self.scaled_expression.columns, 
+            cell_types=self.cell_types,
+            cell_type='TypeA',
+            set_size=self.scaled_expression.shape[1] + 100,  # more
+            feature_selection='ANOVA'
+        )
+
+        self.assertEqual(X.shape, self.scaled_expression.shape)
+        self.assertListEqual(features, self.scaled_expression.columns.tolist())  # SelectKBest does not change order of features
+        self.assertEqual(len(importances), self.scaled_expression.shape[1])
 
 
 class TrainingTest(Test):

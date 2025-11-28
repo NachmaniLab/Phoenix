@@ -26,9 +26,9 @@ def get_prediction_score(
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
         lineage: int | None = None,
-    ) -> tuple[float, list[str]]:
+    ) -> tuple[float, list[str], list[float] | None]:
 
-    X, y, selected_genes = get_train_data(
+    X, y, selected_genes, gene_importances = get_train_data(
         scaled_expression=scaled_expression,
         features=gene_set,
         cell_types=cell_types,
@@ -54,7 +54,7 @@ def get_prediction_score(
         seed=seed
     )
 
-    return score, selected_genes
+    return score, selected_genes, gene_importances
 
 
 def compare_scores(pathway_score: float, background_scores: list[float], distribution: str) -> float:
@@ -99,7 +99,7 @@ def run_comparison(
         lineage: str | None = None,
         trim_background: bool = True,
         cache: str | None = None
-    ):
+    ) -> tuple[float, float, list[float], list[str], list[float] | None]:
 
     prediction_args = {
         'scaled_expression': scaled_expression,
@@ -114,7 +114,7 @@ def run_comparison(
     }
 
     # Pathway of interest
-    pathway_score, top_genes = get_prediction_score(seed=seed, gene_set=gene_set, feature_selection=feature_selection, **prediction_args)
+    pathway_score, top_genes, gene_importances = get_prediction_score(seed=seed, gene_set=gene_set, feature_selection=feature_selection, **prediction_args)
 
     # Background
     background = define_background(set_size, repeats, cell_type, lineage)
@@ -129,7 +129,7 @@ def run_comparison(
     # Compare scores
     p_value = compare_scores(pathway_score, background_scores, distribution)
 
-    return p_value, pathway_score, background_scores, top_genes
+    return p_value, pathway_score, background_scores, top_genes, gene_importances
 
 
 def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, batch_size: int) -> dict[str, list[str]]:
@@ -202,27 +202,27 @@ def run_batch(
         # Cell-type classification
         random.shuffle(all_cell_types)
         for cell_type in all_cell_types:
-            p_value, pathway_score, background_scores, top_genes = run_comparison(
+            p_value, pathway_score, background_scores, top_genes, gene_importances = run_comparison(
                 predictor=classifier, metric=classification_metric,
                 cell_types=cell_types, cell_type=cell_type,
                 **task_args
             )
             classification_results.append(summarise_result(
-                cell_type, set_name, top_genes, set_size, feature_selection, classifier, classification_metric,
+                cell_type, set_name, top_genes, gene_importances, set_size, feature_selection, classifier, classification_metric,
                 cross_validation, repeats, distribution, seed, pathway_score, background_scores, p_value
             ))
         
         # Pseudo-time regression
         random.shuffle(all_lineages)
         for lineage in all_lineages:
-            p_value, pathway_score, background_scores, top_genes = run_comparison(
+            p_value, pathway_score, background_scores, top_genes, gene_importances = run_comparison(
                 predictor=regressor, metric=regression_metric,
                 scaled_pseudotime=scaled_pseudotime, lineage=lineage,
                 **task_args
             )
 
             regression_results.append(summarise_result(
-                lineage, set_name, top_genes, set_size, feature_selection, regressor, regression_metric,
+                lineage, set_name, top_genes, gene_importances, set_size, feature_selection, regressor, regression_metric,
                 cross_validation, repeats, distribution, seed, pathway_score, background_scores, p_value
             ))
 
