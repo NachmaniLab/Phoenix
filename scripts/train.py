@@ -36,7 +36,7 @@ def get_train_data(
         selection_args: dict = {},
         ordered_selection: bool = False,
         seed: int = SEED
-    ) -> tuple[np.ndarray, pd.Series, list[str]]:
+    ) -> tuple[np.ndarray, pd.Series, list[str], list[float] | None]:
     """
     feature_selection: either 'ANOVA' or 'RF', supported for both classification and regression
     ordered_selection: ignored if feature_selection is set
@@ -49,16 +49,16 @@ def get_train_data(
     features = [f for f in features if f in scaled_expression.columns] if features is not None else scaled_expression.columns
     X = scaled_expression.loc[cells, features].to_numpy()
 
-    # Select all features
-    if not set_size or set_size >= len(features):
-        return X, y, features
+    set_size = min(set_size, len(features)) if set_size is not None else len(features)
 
     # Select best features using either ANOVA or RF
-    if feature_selection:
+    if feature_selection is not None:
         if feature_selection == 'ANOVA':
             selected_features = SelectKBest(score_func=f_regression if is_regression else f_classif, k=set_size).fit(X, y)
-            selected_genes = [features[i] for i in selected_features.get_support(indices=True)]
-            return selected_features.transform(X), y, selected_genes
+            selected_indices = selected_features.get_support(indices=True)
+            selected_genes = [features[i] for i in selected_indices]
+            importances = selected_features.scores_[selected_indices].tolist()
+            return selected_features.transform(X), y, selected_genes, importances
         
         if feature_selection == 'RF':
             if 'n_estimators' not in selection_args.keys():
@@ -69,17 +69,17 @@ def get_train_data(
                 importances = RandomForestClassifier(random_state=seed, class_weight='balanced', **selection_args).fit(X, y).feature_importances_
             selected_indices = (-importances).argsort()[:set_size]
             selected_genes = [features[i] for i in selected_indices]
-            return X[:, selected_indices], y, selected_genes
+            return X[:, selected_indices], y, selected_genes, importances[selected_indices].tolist()
         
         raise ValueError(f'Unsupported feature selection method {feature_selection}')
 
     # Select first
     if ordered_selection:
-        return X[:, :set_size], y, features[:set_size]
+        return X[:, :set_size], y, features[:set_size], None
 
     # Select randomly
     selected_indices = random.Random(seed).sample(list(range(X.shape[1])), set_size)
-    return X[:, selected_indices], y, [features[i] for i in selected_indices]
+    return X[:, selected_indices], y, [features[i] for i in selected_indices], None
 
 
 @show_runtime

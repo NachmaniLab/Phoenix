@@ -87,11 +87,12 @@ def save_gene_sets(gene_sets: dict[str, list[str]], output_path: str, title: str
             save_csv(pd.DataFrame(df[col]).dropna(), col, output_path, keep_index=False)
 
 
-def summarise_result(target, set_name, top_genes, set_size, feature_selection, predictor, metric, cross_validation, repeats, distribution, seed, pathway_score, background_scores: list[float], p_value):
+def summarise_result(target, set_name, top_genes, gene_importances, set_size, feature_selection, predictor, metric, cross_validation, repeats, distribution, seed, pathway_score, background_scores: list[float], p_value):
     result = {
         TARGET_COL: target,
         'set_name': set_name,
         'top_genes': top_genes,
+        'gene_importances': gene_importances if gene_importances is not None else 'None',
         'set_size': set_size,
         'feature_selection': feature_selection if feature_selection else 'None',
         'predictor': predictor,
