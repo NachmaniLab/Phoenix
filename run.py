@@ -1,4 +1,5 @@
 import os
+import time as runtime
 import pandas as pd
 from scripts.args import get_run_args
 from scripts.data import preprocess_data, scale_expression, scale_pseudotime
@@ -93,6 +94,7 @@ def run_experiments(
 def summarize(
         output: str,
         tmp: str | None = None,
+        start_time: float | None = None,
         verbose: bool = True,
     ) -> None:
     if verbose:
@@ -103,6 +105,14 @@ def summarize(
     if verbose:
         print('Plotting results...')
     plot(output)
+
+    if verbose and start_time is not None:
+        elapsed = runtime.time() - start_time
+        hours = int(elapsed // 3600)
+        minutes = int((elapsed % 3600) // 60)
+        seconds = int(elapsed % 60)
+        breakpoint()
+        print(f"Runtime: {hours}h {minutes}m {seconds}s")
 
 
 def run_tool(
@@ -135,6 +145,7 @@ def run_tool(
         tmp: str,
         verbose: bool = True,
     ) -> None:
+    start_time = runtime.time()
 
     if processes:
         # Setup
@@ -156,12 +167,12 @@ def run_tool(
         exp_job_id = run_experiments_cmd(setup_job_id, mem, time, exp_args, tmp)
 
         # Aggregation
-        run_aggregation_cmd(exp_job_id, processes, output, tmp)
+        run_aggregation_cmd(exp_job_id, processes, output, tmp, start_time)
     
     else:
         expression, cell_types, pseudotime, reduction, gene_sets = setup(expression, cell_types, pseudotime, reduction, preprocessed, exclude_cell_types, exclude_lineages, pathway_database, custom_pathways, organism, min_set_size, seed, processes, output, return_data=True, verbose=verbose)  # type: ignore[misc]
         run_experiments(feature_selection, set_fraction, min_set_size, classifier, regressor, classification_metric, regression_metric, cross_validation, repeats, seed, distribution, processes, output, tmp, cache, expression, cell_types, pseudotime, gene_sets, verbose=verbose)
-        summarize(output, verbose=verbose)
+        summarize(output, start_time=start_time, verbose=verbose)
 
 
 if __name__ == '__main__':

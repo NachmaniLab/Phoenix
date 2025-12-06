@@ -82,10 +82,10 @@ def run_experiments_cmd(setup_job_id: str, mem: int, time: int, args: dict, tmp:
     return execute_sbatch_cmd(cmd, 'experiments', args['processes'])
 
 
-def run_aggregation_cmd(exp_job_id: str, exp_processes: int | None, output: str, tmp: str) -> str:
+def run_aggregation_cmd(exp_job_id: str, exp_processes: int | None, output: str, tmp: str, start_time: float) -> str:
     cmd = get_cmd(
         func='summarize',
-        args={'output': output, 'tmp': tmp},
+        args={'output': output, 'tmp': tmp, 'start_time': start_time},  # type: ignore[dict-item]
         script='run',
         mem='5G',  
         time='0:45:0',
