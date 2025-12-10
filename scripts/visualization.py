@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
+from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
 from scripts.utils import remove_outliers, get_color_mapping, convert_to_sci
@@ -293,6 +294,102 @@ def _plot_gene_set_expression(
     plt.title(set_name)
 
 
+def _fast_smooth_density(x, y, bins: int = 200, sigma: float = 2.0):
+    """Fast smoothed density via blurred 2D histogram"""
+    hist, xedges, yedges = np.histogram2d(x, y, bins=bins)
+    hist_smooth = gaussian_filter(hist, sigma=sigma)
+    ix = np.searchsorted(xedges, x, side="right") - 1
+    iy = np.searchsorted(yedges, y, side="right") - 1
+    ix = np.clip(ix, 0, bins - 1)
+    iy = np.clip(iy, 0, bins - 1)
+    dens = hist_smooth[ix, iy]
+    return dens
+
+
+def plot_volcano(
+    df: pd.DataFrame,
+    title: str = '',
+    output: str | None = None,
+    format: str = 'png',
+    target_col: str = TARGET_COL,
+    effect_col: str = "effect_size",
+    fdr_col: str = "fdr",
+    fdr_thresh: float = 0.05,
+    effect_thresh: float = 1,
+    ncols: int = 5,
+    figsize_per_panel=(3, 3),
+    bins: int = 200,
+    sigma: float = 2.0,
+    jitter_x: float = 0.02,
+    jitter_y: float = 0.05,
+    point_size: float = 8.0,
+    alpha: float = 1.0,
+):
+    df = df.copy()
+    df["neglog10_fdr"] = -np.log10(df[fdr_col].clip(lower=1e-300))
+
+    targets = sorted(df[target_col].unique())
+    targets = [t for t in targets if t != ALL_CELLS]
+    n_targets = len(targets)
+
+    nrows = int(np.ceil(n_targets / ncols))
+    fig, axes = plt.subplots(
+        nrows=nrows, ncols=ncols,
+        figsize=(figsize_per_panel[0] * ncols, figsize_per_panel[1] * nrows),
+        squeeze=False, sharex=True, sharey=True
+    )
+
+    y_thresh = -np.log10(fdr_thresh)
+
+    for i, target in enumerate(targets):
+        r, c = divmod(i, ncols)
+        ax = axes[r, c]
+
+        sub = df[df[target_col] == target]
+        x = sub[effect_col].to_numpy()
+        y = sub["neglog10_fdr"].to_numpy()
+
+        m = np.isfinite(x) & np.isfinite(y)
+        x = x[m]
+        y = y[m]
+
+        x = x + np.random.normal(0, jitter_x, size=len(x))
+        y = y + np.random.normal(0, jitter_y, size=len(y))
+
+        dens = _fast_smooth_density(x, y, bins=bins, sigma=sigma)
+
+        ax.scatter(
+            x, y, c=dens,
+            cmap="viridis",
+            s=point_size, alpha=alpha,
+            edgecolors="none", rasterized=True
+        )
+
+        ax.axvline(effect_thresh, color="red")
+        ax.axvline(-effect_thresh, color="red")
+        ax.axhline(y_thresh, color="red")
+
+        ax.set_xlim((-2, 2))
+        ax.set_ylim((0, 15))
+
+        n_sig = (((sub[effect_col] < -effect_thresh) | (sub[effect_col] > effect_thresh)) & (sub[fdr_col] < fdr_thresh)).sum()
+        ax.set_title(f"{target} (n_sig={n_sig})", fontsize=9)
+        ax.tick_params(labelsize=7)
+
+        if r == nrows - 1:
+            ax.set_xlabel("Effect size", fontsize=8)
+        if c == 0:
+            ax.set_ylabel("-log10(FDR)", fontsize=8)
+
+    for j in range(i + 1, nrows * ncols):
+        r, c = divmod(j, ncols)
+        fig.delaxes(axes[r, c])
+
+    fig.suptitle(title, fontsize=14, y=1.02)
+    fig.tight_layout()
+    save_plot(f'volcano_{title}', output, format=format)
+
+
 def plot_experiment(
         output: str,
         target: str,
@@ -411,6 +508,8 @@ def plot(
         results = get_experiment(result_type, output)
         if target_data is None or results is None:
             continue
+
+        plot_volcano(results, title=result_type, output=output)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
         save_csv(data, f'p_values_{target_type}', output)

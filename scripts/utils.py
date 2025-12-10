@@ -104,13 +104,14 @@ def get_color_mapping(cell_types: list[str]) -> dict[str, str]:
     return {cell_type: color_palette[i] for i, cell_type in enumerate(cell_types)}
 
 
-def remove_outliers(values: list[float]) -> list[float]:
+def remove_outliers(values: list[float], k: float = 1.5) -> list[float]:
     Q1 = np.percentile(values, 25)
     Q3 = np.percentile(values, 75)
     IQR = Q3 - Q1
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-    return [i for i in values if i >= lower_bound and i <= upper_bound]
+    lower = Q1 - k * IQR
+    upper = Q3 + k * IQR
+    return [i for i in values if lower <= i <= upper]
+
 
 
 def correct_effect_size(effect_sizes: pd.Series, targets: pd.Series) -> pd.Series:
