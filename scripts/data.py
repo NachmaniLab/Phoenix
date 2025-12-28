@@ -99,7 +99,7 @@ def preprocess_data(
         if exclude_lineages:
             if verbose:
                 print(f'Excluding lineages: {", ".join(exclude_lineages)}...')
-            pseudotime.drop(columns=exclude_lineages, inplace=True)
+            pseudotime = pseudotime.drop(columns=exclude_lineages)
 
     # Reduce dimensions
     if isinstance(reduction, str):
@@ -175,7 +175,7 @@ def calculate_cell_type_effect_size(row, masked_expression, cell_types) -> float
     return curr_sum - other_sum
 
 
-def calculate_pseudotime_effect_size(row, masked_expression, pseudotime, percentile: float = 0.2) -> float:
+def calculate_pseudotime_effect_size(row, masked_expression, pseudotime, percentile: float = 0.2, bins: int = 10) -> float:
     target = row[TARGET_COL]
     genes = row['top_genes'].split('; ')
 
@@ -186,7 +186,7 @@ def calculate_pseudotime_effect_size(row, masked_expression, pseudotime, percent
     orig_sum = mean_gene_expression(masked_expression.loc[orig_cells, genes]).mean()
 
     max_change, max_sum = np.nan, np.nan
-    for i in range(1, len(pseudotime_cells) - size + 1):
+    for i in range(1, len(pseudotime_cells) - size + 1, len(pseudotime_cells) // bins):
         curr_cells = pseudotime_cells[i:i+size]
         curr_sum = mean_gene_expression(masked_expression.loc[curr_cells, genes]).mean()
         curr_change = abs(curr_sum - orig_sum)
