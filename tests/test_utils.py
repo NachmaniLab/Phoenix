@@ -12,10 +12,14 @@ class UtilTest(Test):
         self.gene_sets = {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']}
             
     def test_set_size_definition(self):
-        self.assertEqual(define_set_size(20, 0.5, 15), 15)
-        self.assertEqual(define_set_size(8, 0.5, 10), 8)
         self.assertEqual(define_set_size(80, 0.25, 10), 20)
-        self.assertEqual(define_set_size(300, 0.5, 10), 140)  # as 150 is not in SIZES
+        self.assertEqual(define_set_size(100, 0.5, 1), 40)  # 50 would be exact, but 40 is the closest
+        self.assertEqual(define_set_size(20, 0.5, 15), 15)  # min_set_size makes it 15 instead of 10
+        self.assertEqual(define_set_size(20, 0.5, 16), 15)  # min_set_size makes it 16 instead of 10, but 15 is the closest
+        self.assertEqual(define_set_size(20, 0.5, 40), 20)  # min_set_size turns 10 into 40 but 40 is bigger than set_len so seq_len is selected
+        self.assertEqual(define_set_size(8, 0.5, 10), 5)  # min_set_size turns 4 into 10 but 10 is bigger than set_len so seq_len is selected, but since 8 is not in SIZES, 5 is selected
+        self.assertEqual(define_set_size(500, 0.5, 10), 200)  # as 250 is not in SIZES
+        self.assertEqual(define_set_size(1, 1.0, 1), 2)  # as 1 is not in SIZES
 
     def test_num_batches_definition(self):
         self.assertEqual(define_batch_size(9, 3), 3)

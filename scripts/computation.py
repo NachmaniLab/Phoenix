@@ -1,6 +1,14 @@
 import os, subprocess
 
 
+def to_str(value) -> str:
+    if hasattr(value, 'name'):
+        return value.name
+    if isinstance(value, str):
+        return repr(value)
+    return str(value)
+
+
 def get_cmd(
         func: str,
         args: dict[str, str],
@@ -14,7 +22,7 @@ def get_cmd(
         previous_processes: int | None = None,
     ) -> str:
 
-    parsed_args = ', '.join([f'{k}={repr(v) if isinstance(v, str) else v}' for k, v in args.items()])
+    parsed_args = ', '.join([f'{k}={to_str(v)}' for k, v in args.items()])
     parsed_args = parsed_args.replace("'", '\\"')
     
     script = f'scripts.{script}' if not os.path.exists(f'{script}.py') else script

@@ -218,7 +218,7 @@ def get_gene_sets(pathway_database: list[str], custom_pathways: list[str], organ
     
     # Filter gene annotations based on size
     gene_sets = {make_valid_term(set_name): [g for g in intersect_genes(gene_set, all_genes) if g != []] for set_name, gene_set in gene_sets.items()}
-    gene_sets = {set_name: gene_set for set_name, gene_set in gene_sets.items() if len(gene_set) >= max(min_set_size, SIZES[0]) and len(gene_set) <= SIZES[-1]}
+    gene_sets = {set_name: gene_set for set_name, gene_set in gene_sets.items() if len(gene_set) >= min_set_size}
 
     # Save
     save_gene_sets(gene_sets, output)

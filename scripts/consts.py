@@ -1,4 +1,5 @@
 import numpy as np
+from enum import Enum, auto
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -11,7 +12,14 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, m
 from scripts.metrics import weighted_metric_using_icf, compute_f1, compute_recall
 
 
-SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 75, 100, 120, 140, 160, 180, 200, 225, 250]
+class BackgroundMode(Enum):
+    REAL = auto()
+    RANDOM = auto()
+    AUTO = auto()
+
+
+SIZES = [2, 5, 10, 15, 20, 25, 30, 40, 60, 80, 100, 150, 200]
+LEN_SIZES = len(SIZES)
 
 REDUCTION_METHODS = ['pca', 'umap', 'tsne']
 

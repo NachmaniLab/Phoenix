@@ -16,9 +16,8 @@ from run import run_tool
 from scripts.consts import (
     CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
-    MIN_SET_SIZE, SEED, CELL_TYPE_COL
+    MIN_SET_SIZE, SEED, CELL_TYPE_COL, BackgroundMode
 )
-from scripts.data import preprocess_data as real_preprocess_data
 
 
 class E2ERunTest(Test):
@@ -99,6 +98,7 @@ class E2ERunTest(Test):
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
             'cross_validation': 2,
+            'background_mode': BackgroundMode.AUTO,
             'repeats': 2,
             'seed': SEED,
             'distribution': DISTRIBUTIONS[0],
