@@ -1,7 +1,7 @@
 import argparse, os
 from scripts.consts import *
 from scripts.output import create_dir
-from scripts.utils import get_full_path, parse_missing_args
+from scripts.utils import get_full_path, parse_missing_args, str2enum
 
 
 ### Run ###
@@ -103,7 +103,7 @@ def process_run_args(args):
     args.regression_metric = args.regression_metric.lower().replace(' ', '_')
     args.feature_selection = args.feature_selection.upper() if args.feature_selection else None
     args.distribution = args.distribution.lower()
-    args.background_mode = BackgroundMode(args.background_mode.upper())
+    args.background_mode = str2enum(BackgroundMode, args.background_mode)
 
     create_dir(args.output)
     args.output = get_full_path(args.output)

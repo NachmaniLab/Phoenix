@@ -1,4 +1,5 @@
 import re, os, time
+from typing import Any
 import pandas as pd
 from functools import wraps
 from argparse import Namespace
@@ -61,6 +62,14 @@ def convert_from_str(info: str) -> list | float | str:
         return float(info)
     except:
         return info
+
+
+def enum2str(enum_val) -> str:
+    return enum_val.name if not isinstance(enum_val, str) else enum_val
+
+
+def str2enum(enum_class, enum_str: str | Any):
+    return enum_class[enum_str.upper()] if isinstance(enum_str, str) else enum_str
 
 
 def define_task(cell_type: str | None = None, lineage: str | None = None):

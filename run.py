@@ -8,7 +8,7 @@ from scripts.backgrounds import define_sizes, set_background_mode
 from scripts.pathways import get_gene_sets
 from scripts.computation import run_setup_cmd, run_experiments_cmd, run_aggregation_cmd
 from scripts.prediction import run_batch, get_gene_set_batch
-from scripts.utils import define_batch_size
+from scripts.utils import define_batch_size, str2enum
 from scripts.output import read_raw_data, aggregate_result, get_preprocessed_data, read_gene_sets
 from scripts.visualization import plot
 
@@ -39,8 +39,8 @@ def setup(
     expression, cell_types, pseudotime, reduction = preprocess_data(expression, cell_types, pseudotime, reduction, preprocessed=preprocessed, exclude_cell_types=exclude_cell_types, exclude_lineages=exclude_lineages, seed=seed, output=output, verbose=verbose)
     gene_sets = get_gene_sets(pathway_database, custom_pathways, organism, expression.columns, min_set_size, output)  # type: ignore[attr-defined]
     
-    background_mode = BackgroundMode[background_mode] if isinstance(background_mode, str) else background_mode
-    background_mode = set_background_mode(background_mode, repeats, len(gene_sets))
+    background_mode = str2enum(BackgroundMode, background_mode)
+    background_mode = set_background_mode(background_mode, repeats, len(gene_sets))  # type: ignore[arg-type]
     sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, output)
 
     if verbose:
