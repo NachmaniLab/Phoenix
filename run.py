@@ -2,11 +2,13 @@ import os
 import time as runtime
 import pandas as pd
 from scripts.args import get_run_args
+from scripts.consts import BackgroundMode
 from scripts.data import preprocess_data, scale_expression, scale_pseudotime
+from scripts.backgrounds import define_sizes, set_background_mode
 from scripts.pathways import get_gene_sets
 from scripts.computation import run_setup_cmd, run_experiments_cmd, run_aggregation_cmd
 from scripts.prediction import run_batch, get_gene_set_batch
-from scripts.utils import define_batch_size
+from scripts.utils import define_batch_size, str2enum
 from scripts.output import read_raw_data, aggregate_result, get_preprocessed_data, read_gene_sets
 from scripts.visualization import plot
 
@@ -22,23 +24,31 @@ def setup(
         pathway_database: list[str],
         custom_pathways: list[str],
         organism: str,
+        background_mode: BackgroundMode | str,
+        repeats: int,
+        set_fraction: float,
         min_set_size: int,
         seed: int,
         processes: int,
         output: str,
         return_data: bool = False,
         verbose: bool = True,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, list[str]]] | None:
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, list[str]], list[int]] | None:
 
     expression, cell_types, pseudotime, reduction = read_raw_data(expression, cell_types, pseudotime, reduction)
     expression, cell_types, pseudotime, reduction = preprocess_data(expression, cell_types, pseudotime, reduction, preprocessed=preprocessed, exclude_cell_types=exclude_cell_types, exclude_lineages=exclude_lineages, seed=seed, output=output, verbose=verbose)
     gene_sets = get_gene_sets(pathway_database, custom_pathways, organism, expression.columns, min_set_size, output)  # type: ignore[attr-defined]
     
+    background_mode = str2enum(BackgroundMode, background_mode)
+    background_mode = set_background_mode(background_mode, repeats, len(gene_sets))  # type: ignore[arg-type]
+    sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, output)
+
     if verbose:
+        print(f'Background mode: {background_mode.name}')
         print(f'Running experiments for {len(gene_sets)} gene annotations with batch size of {define_batch_size(len(gene_sets), processes)}...')
 
     if return_data:
-        return expression, cell_types, pseudotime, reduction, gene_sets
+        return expression, cell_types, pseudotime, reduction, gene_sets, sizes
     return None
 
 
@@ -134,6 +144,7 @@ def run_tool(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        background_mode: BackgroundMode,
         repeats: int,
         seed: int,
         distribution: str,
@@ -152,7 +163,8 @@ def run_tool(
         setup_args = {
             'expression': expression, 'cell_types': cell_types, 'pseudotime': pseudotime, 'reduction': reduction,
             'preprocessed': preprocessed, 'exclude_cell_types': exclude_cell_types, 'exclude_lineages': exclude_lineages,
-            'pathway_database': pathway_database, 'custom_pathways': custom_pathways, 'organism': organism, 'min_set_size': min_set_size,
+            'pathway_database': pathway_database, 'custom_pathways': custom_pathways, 'organism': organism,
+            'background_mode': background_mode, 'repeats': repeats, 'set_fraction': set_fraction, 'min_set_size': min_set_size,
             'seed': seed, 'processes': processes, 'output': output
         }
         setup_job_id = run_setup_cmd(setup_args, tmp)
@@ -170,7 +182,7 @@ def run_tool(
         run_aggregation_cmd(exp_job_id, processes, output, tmp, start_time)
     
     else:
-        expression, cell_types, pseudotime, reduction, gene_sets = setup(expression, cell_types, pseudotime, reduction, preprocessed, exclude_cell_types, exclude_lineages, pathway_database, custom_pathways, organism, min_set_size, seed, processes, output, return_data=True, verbose=verbose)  # type: ignore[misc]
+        expression, cell_types, pseudotime, reduction, gene_sets, sizes = setup(expression, cell_types, pseudotime, reduction, preprocessed, exclude_cell_types, exclude_lineages, pathway_database, custom_pathways, organism, background_mode, repeats, set_fraction, min_set_size, seed, processes, output, return_data=True, verbose=verbose)  # type: ignore[misc]
         run_experiments(feature_selection, set_fraction, min_set_size, classifier, regressor, classification_metric, regression_metric, cross_validation, repeats, seed, distribution, processes, output, tmp, cache, expression, cell_types, pseudotime, gene_sets, verbose=verbose)
         summarize(output, start_time=start_time, verbose=verbose)
 

@@ -1,9 +1,11 @@
 import re, os, time
+from typing import Any
 import pandas as pd
 from functools import wraps
 from argparse import Namespace
 import numpy as np
 import seaborn as sns
+from bisect import bisect_right
 from statsmodels.stats.multitest import multipletests
 from scripts.consts import SIZES, LIST_SEP, CELL_TYPE_COL, ALL_CELLS
 
@@ -62,6 +64,14 @@ def convert_from_str(info: str) -> list | float | str:
         return info
 
 
+def enum2str(enum_val) -> str:
+    return enum_val.name if not isinstance(enum_val, str) else enum_val
+
+
+def str2enum(enum_class, enum_str: str | Any):
+    return enum_class[enum_str.upper()] if isinstance(enum_str, str) else enum_str
+
+
 def define_task(cell_type: str | None = None, lineage: str | None = None):
     if lineage:
         return f'regression_{lineage}'
@@ -76,8 +86,14 @@ def define_background(set_size: int, repeats: int, cell_type: str | None = None,
 
 
 def define_set_size(set_len: int, set_fraction: float, min_set_size: int) -> int:
-    set_size = min(max(int(set_len * set_fraction), min_set_size), set_len)
-    return max((x for x in SIZES if x <= set_size), default=None)  # type: ignore[arg-type]
+    # clamp target size to [min_set_size, set_len]
+    target = int(set_len * set_fraction)
+    target = max(target, min_set_size)
+    target = min(target, set_len)
+
+    # largest allowed size <= target (max(x for x in SIZES if x <= set_size))
+    i = bisect_right(SIZES, target) - 1
+    return SIZES[i] if i >= 0 else SIZES[0]
 
 
 def define_batch_size(gene_set_len: int, processes: int) -> int:

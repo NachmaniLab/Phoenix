@@ -72,7 +72,7 @@ Customize feature selection parameters:
 
 * `feature_selection`: Feature selection method applied to each gene set: `RF` or `ANOVA`. Default: `RF`.
 * `set_fraction`: Fraction of genes to select from each gene set. Default: `0.75`.
-* `min_set_size`: Minimum number of genes to select from each gene set. Default: `1`.
+* `min_set_size`: Minimum number of genes to select from each gene set. Default: `2`.
 
 Customize prediction model parameters:
 
@@ -85,6 +85,7 @@ Customize prediction model parameters:
 
 Customize background distribution parameters:
 
+* `background_mode`: Strategy for constructing background score distributions used in pathway significance testing. `real` builds backgrounds from scores of real pathways, `random` builds backgrounds from randomly sampled gene sets at predefined sizes, and `auto` chooses automatically based on the size of the gene set database. Default: `auto` (recommended)
 * `repeats`: Size of background distribution. Default: `200`.
 * `distribution`: Type of background distribution: `gamma` or `normal`. Default: `gamma`.
 

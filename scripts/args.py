@@ -1,7 +1,7 @@
 import argparse, os
 from scripts.consts import *
 from scripts.output import create_dir
-from scripts.utils import get_full_path, parse_missing_args
+from scripts.utils import get_full_path, parse_missing_args, str2enum
 
 
 ### Run ###
@@ -55,6 +55,8 @@ def parse_run_args() -> argparse.Namespace:
                         help='Regression score: ' + ', '.join(REGRESSION_METRICS.keys()))
     parser.add_argument('--cross_validation', type=int, default=CROSS_VALIDATION,
                         help='Number of cross-validation folds')
+    parser.add_argument('--background_mode', type=str, default=BackgroundMode.AUTO.name,
+                        help='Background mode for p-value estimation: `real` uses real pathway scores, `random` uses scores from random gene sets, and `auto` selects automatically based on the number of gene sets')
     parser.add_argument('--repeats', type=int, default=REPEATS,
                         help='Size of background distribution')
     parser.add_argument('--seed', type=int, default=SEED,
@@ -101,6 +103,7 @@ def process_run_args(args):
     args.regression_metric = args.regression_metric.lower().replace(' ', '_')
     args.feature_selection = args.feature_selection.upper() if args.feature_selection else None
     args.distribution = args.distribution.lower()
+    args.background_mode = str2enum(BackgroundMode, args.background_mode)
 
     create_dir(args.output)
     args.output = get_full_path(args.output)
@@ -131,7 +134,7 @@ def validate_run_args(args):
     assert args.seed > 0
     assert args.distribution in DISTRIBUTIONS
     assert 0 < args.set_fraction <= 1
-    assert SIZES[0] <= args.min_set_size <= SIZES[-1]
+    assert args.min_set_size >= 2
     assert not args.processes or args.processes >= 0
     assert not args.processes or args.mem > 0
     assert not args.processes or args.time > 0

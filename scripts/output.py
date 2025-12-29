@@ -1,9 +1,9 @@
-import os, yaml, glob  # type: ignore[import-untyped]
+import os, yaml, glob, json  # type: ignore[import-untyped]
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
-from scripts.consts import TARGET_COL, CELL_TYPE_COL
+from scripts.consts import TARGET_COL, CELL_TYPE_COL, BackgroundMode
 from scripts.utils import make_valid_filename, convert_to_str, convert_from_str, adjust_p_value, correct_effect_size
 
 
@@ -50,6 +50,26 @@ def read_raw_data(expression: str, cell_types: str | None, pseudotime: str | Non
         reduction = read_csv(reduction).loc[expression.index]
     return expression, cell_types, pseudotime, reduction
 
+
+def _get_size_filename(background_mode: BackgroundMode) -> str:
+    return make_valid_filename(f'{background_mode.name}_background_sizes.json')
+
+
+def save_sizes(sizes: list[int], background_mode: BackgroundMode, output_path: str) -> None:
+    path = os.path.join(output_path, _get_size_filename(background_mode))
+    with open(path, 'w') as file:
+        json.dump(sizes, file)
+
+
+def load_sizes(output_path: str) -> tuple[list[int], BackgroundMode]:
+    for background_mode in [BackgroundMode.REAL, BackgroundMode.RANDOM]:
+        path = os.path.join(output_path, _get_size_filename(background_mode))
+        if os.path.exists(path):
+            with open(path, 'r') as file:
+                sizes = json.load(file)
+            return sizes, background_mode
+    raise RuntimeError('No background sizes found in output path.')
+    
 
 def load_background_scores(background: str, cache_path: str | None = None, verbose: bool = False):
     background = make_valid_filename(background).lower()
