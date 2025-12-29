@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 from scripts.consts import SIZES, BackgroundMode, LEN_SIZES
 from scripts.backgrounds import (
@@ -5,6 +7,7 @@ from scripts.backgrounds import (
     define_sizes_in_random_mode,
     define_sizes_in_real_mode,
 )
+from scripts.output import load_background_scores, save_background_scores
 from tests.interface import Test
 
 
@@ -23,7 +26,7 @@ class BackgroundModeTest(Test):
         self.assertEqual(result, BackgroundMode.RANDOM)
 
 
-class DefineSizes(Test):
+class SizeDefinitionTest(Test):
 
     def setUp(self):
         self.gene_sets = {
@@ -65,6 +68,29 @@ class DefineSizes(Test):
         with self.assertRaises(RuntimeError) as context:
             define_sizes_in_real_mode(small_gene_sets, set_fraction=1.0, min_set_size=1)
         self.assertIn('Not enough gene sets', str(context.exception))
+
+
+class TestBackgroundCacheIO(Test):
+
+    def test_save_then_load_background_scores(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            background = 'test-background'
+            scores = [0.1, 0.2, 0.3]
+            save_background_scores(scores, background, cache_path=tmp)
+            loaded = load_background_scores(background, cache_path=tmp)
+            self.assertEqual(loaded, scores)
+
+    def test_load_returns_empty_list_when_file_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            loaded = load_background_scores('does-not-exist', cache_path=tmp)
+            self.assertEqual(loaded, [])
+
+    def test_load_returns_empty_list_when_file_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            background = "empty-file"
+            open(os.path.join(tmp, f'{background}.yml'), "w").close()  # empty file
+            loaded = load_background_scores(background, cache_path=tmp)
+            self.assertEqual(loaded, [])
 
 
 if __name__ == '__main__':

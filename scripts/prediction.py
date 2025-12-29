@@ -8,7 +8,7 @@ import pandas as pd
 import scipy.stats as stats
 from scripts.data import get_cell_types, get_lineages, calculate_cell_type_effect_size, calculate_pseudotime_effect_size
 from scripts.train import get_train_data, train
-from scripts.consts import CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS
+from scripts.consts import CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS, SIZES, BackgroundMode
 from scripts.utils import define_background, define_set_size, remove_outliers
 from scripts.output import load_background_scores, save_background_scores, summarise_result, save_csv, get_preprocessed_data
 
@@ -25,7 +25,7 @@ def get_prediction_score(
         cell_types: pd.DataFrame | None = None,
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
-        lineage: int | None = None,
+        lineage: str | None = None,
     ) -> tuple[float, list[str], list[float] | None]:
 
     X, y, selected_genes, gene_importances = get_train_data(
@@ -117,7 +117,7 @@ def run_comparison(
     pathway_score, top_genes, gene_importances = get_prediction_score(seed=seed, gene_set=gene_set, feature_selection=feature_selection, **prediction_args)
 
     # Background
-    background = define_background(set_size, repeats, cell_type, lineage)
+    background = define_background(set_size, BackgroundMode.RANDOM, cell_type, lineage, repeats)
     background_scores = load_background_scores(background, cache)
     if not background_scores:
         for i in range(repeats):
@@ -191,7 +191,7 @@ def run_batch(
             print(f'\n{logger}Pathway {i + 1}/{len(batch_gene_sets)}: {set_name}', flush=True)
             sys.stdout.flush()
 
-        set_size = define_set_size(len(gene_set), set_fraction, min_set_size)
+        set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=SIZES)
         task_args = {
             'scaled_expression': scaled_expression, 'gene_set': gene_set,
             'set_size': set_size, 'feature_selection': feature_selection,

@@ -28,9 +28,11 @@ def read_csv(path: str, index_col: int = 0, dtype=None, verbose: bool = False) -
 def save_csv(data: list[dict] | pd.DataFrame | dd.DataFrame | None, title: str, output_path: str, keep_index: bool = True) -> None:
     # TODO: if already exists
      
-    if data is None: return
+    if data is None or (hasattr(data, 'empty') and data.empty):
+        return
     if isinstance(data, list):
-        if not data: return
+        if not data:
+            return
 
     if isinstance(data, dd.DataFrame):
         data.to_csv(os.path.join(output_path, f'{make_valid_filename(title)}.csv'), single_file=True, index=keep_index)
@@ -139,7 +141,7 @@ def read_results(title: str, output_path: str, index_col: int | None = None, rai
         return None
 
 
-def get_preprocessed_data(data: pd.DataFrame | str, output_path: str):
+def get_preprocessed_data(data: pd.DataFrame | str, output_path: str) -> pd.DataFrame:
     if isinstance(data, str):
         data = read_results(data, output_path, index_col=0, raise_err=True)
     return data
@@ -168,6 +170,17 @@ def aggregate_result(result_type: str, output: str, tmp: str | None) -> pd.DataF
     df['effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
     save_csv(dd.from_pandas(df, npartitions=1), result_type, output, keep_index=False)
     return df
+
+
+def aggregate_batch_results(tmp: str, result_type: str) -> pd.DataFrame | None:
+    dfs = []
+    for path in glob.glob(os.path.join(tmp, f'{result_type}_batch*.csv')):  # type: ignore[arg-type]
+        df = read_results(os.path.basename(path), tmp, index_col=None)  # type: ignore[arg-type]
+        if df is not None:
+            dfs.append(df)
+    if not dfs:  # if result type is missing
+        return None
+    return pd.concat(dfs, ignore_index=True)
 
 
 def get_experiment(results: pd.DataFrame | str, output_path: str, set_name: str | None = None, target: str | None = None) -> pd.DataFrame | dict:

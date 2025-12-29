@@ -7,7 +7,7 @@ import numpy as np
 import seaborn as sns
 from bisect import bisect_right
 from statsmodels.stats.multitest import multipletests
-from scripts.consts import SIZES, LIST_SEP, CELL_TYPE_COL, ALL_CELLS
+from scripts.consts import LIST_SEP, CELL_TYPE_COL, ALL_CELLS, BackgroundMode
 
 
 transform_log = lambda x: np.log2(x + 1)
@@ -48,6 +48,8 @@ def convert_to_sci(num: float) -> str:
 
 
 def convert_to_str(info: str | list | dict | None) -> str:
+    if info is None:
+        return 'None'
     if isinstance(info, list):
         return LIST_SEP.join([convert_to_str(i) for i in info])
     if isinstance(info, dict):
@@ -80,26 +82,34 @@ def define_task(cell_type: str | None = None, lineage: str | None = None):
     raise RuntimeError()
 
 
-def define_background(set_size: int, repeats: int, cell_type: str | None = None, lineage: str | None = None):
-    # TODO: add info such as model name
-    return f'{define_task(cell_type, lineage)}_size{set_size}_repeats{repeats}'
+def define_background(
+        set_size: int,
+        background_mode: BackgroundMode,
+        cell_type: str | None = None,
+        lineage: str | None = None,
+        repeats: int | None = None,
+    ) -> str:
+    task = define_task(cell_type, lineage)
+    background = f'{task}_{set_size}_{background_mode.name.lower()}'
+    background += f'_repeats{repeats}' if background_mode == BackgroundMode.RANDOM and repeats is not None else ''
+    return background
 
 
-def define_set_size(set_len: int, set_fraction: float, min_set_size: int) -> int:
+def define_set_size(set_len: int, set_fraction: float, min_set_size: int, all_sizes: list[int]) -> int:
     # clamp target size to [min_set_size, set_len]
     target = int(set_len * set_fraction)
     target = max(target, min_set_size)
     target = min(target, set_len)
 
     # largest allowed size <= target (max(x for x in SIZES if x <= set_size))
-    i = bisect_right(SIZES, target) - 1
-    return SIZES[i] if i >= 0 else SIZES[0]
+    i = bisect_right(all_sizes, target) - 1
+    return all_sizes[i] if i >= 0 else min(all_sizes[0], set_len)
 
 
-def define_batch_size(gene_set_len: int, processes: int) -> int:
+def define_batch_size(set_len: int, processes: int) -> int:
     if not processes:
-        return gene_set_len
-    return int(np.ceil(gene_set_len / processes))
+        return set_len
+    return int(np.ceil(set_len / processes))
 
 
 def define_task_length(cell_types, pseudotime) -> int:
@@ -127,7 +137,6 @@ def remove_outliers(values: list[float], k: float = 1.5) -> list[float]:
     lower = Q1 - k * IQR
     upper = Q3 + k * IQR
     return [i for i in values if lower <= i <= upper]
-
 
 
 def correct_effect_size(effect_sizes: pd.Series, targets: pd.Series) -> pd.Series:
