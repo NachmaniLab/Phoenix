@@ -211,39 +211,3 @@ def save_plot(title: str, output: str | None = None, format: str = 'png') -> Non
 
 def create_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
-
-
-def get_dir(
-        output: str | None,
-        data: bool = False,
-        reports: bool = False,
-        background: bool = False,
-        classification: bool = False,
-        regression: bool = False,
-        batch: bool = False,
-        pathways: bool = False,
-    ) -> str | None:
-    if not output:
-        return None
-    
-    if data:
-        title = 'preprocessed_data'
-    elif reports:
-        title = 'reports'
-    elif background:
-        title = 'background_scores'
-    elif classification:
-        title = 'cell_type_classification'
-    elif regression:
-        title = 'pseudotime_regression'
-    else:
-        title = ''
-    
-    path = os.path.join(output, title)
-    if pathways:
-        path = os.path.join(path, 'pathways')
-    elif batch:
-        path = os.path.join(path, 'batches')
-
-    create_dir(path)
-    return path

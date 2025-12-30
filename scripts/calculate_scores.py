@@ -33,7 +33,7 @@ def calculate_pathway_scores(
     """
     Calculate pathway scores for a single batch of pathways.
     """
-    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or None for a single batch
+    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or 0 for a single batch
 
     expression = get_preprocessed_data(expression, output)
     cell_types = get_preprocessed_data(cell_types, output)
@@ -164,7 +164,7 @@ def _get_target_size_pair_batch(sizes: list[int], targets: list[str], batch: int
     batch: number between 1 and `processes`, or 0 for a single batch
     """
     all_pairs = [(size, target) for size in sizes for target in targets]
-    if not batch or batch is None:
+    if not batch:
         return all_pairs
     batch_start = (batch - 1) * batch_size
     batch_end = min(batch_start + batch_size, len(all_pairs))
@@ -187,7 +187,7 @@ def calculate_background_scores_in_random_mode(
         pseudotime: pd.DataFrame | str | None = 'pseudotime',
         trim_background: bool = True,
     ) -> None:
-    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or None for a single batch
+    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or 0 for a single batch
 
     expression = get_preprocessed_data(expression, output)
     cell_types = get_preprocessed_data(cell_types, output)

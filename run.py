@@ -78,7 +78,7 @@ def run_experiments(
     Run experiments for a single batch of gene sets.
     output: main output path
     """
-    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or None for a single batch
+    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or 0 for a single batch
 
     expression = get_preprocessed_data(expression, output)
     cell_types = get_preprocessed_data(cell_types, output)

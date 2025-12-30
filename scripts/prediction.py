@@ -136,7 +136,7 @@ def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, batch_size: 
     """
     batch: number between 1 and `processes`, or 0 for a single batch
     """
-    if not batch or batch is None:
+    if not batch:
         return gene_sets
     batch_start = (batch - 1) * batch_size
     batch_end = min(batch_start + batch_size, len(gene_sets))
@@ -145,7 +145,7 @@ def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, batch_size: 
 
 
 def run_batch(
-        batch: int | None,
+        batch: int,
         batch_gene_sets: dict[str, list[str]],
         scaled_expression: pd.DataFrame,
         cell_types: pd.DataFrame,
@@ -168,7 +168,7 @@ def run_batch(
     ) -> None:
     """
     output: main output path for a single batch and temp output path for many batches
-    batch: number between 1 and `processes`, or None for a single batch
+    batch: number between 1 and `processes`, or 0 for a single batch
     """
     if batch_gene_sets is None:
         return
