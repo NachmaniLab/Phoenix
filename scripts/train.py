@@ -14,7 +14,7 @@ def get_train_target(
         cell_types: pd.DataFrame | None = None,
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
-        lineage: int | None = None,
+        lineage: str | None = None,
     ):
     if scaled_pseudotime is not None:
         return scaled_pseudotime.loc[:, lineage].dropna()
@@ -30,7 +30,7 @@ def get_train_data(
         cell_types: pd.DataFrame | None = None,
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
-        lineage: int | None = None,
+        lineage: str | None = None,
         set_size: int | None = None,
         feature_selection: str | None = None,
         selection_args: dict = {},

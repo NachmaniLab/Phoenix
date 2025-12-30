@@ -1,5 +1,5 @@
 import numpy as np
-from scripts.consts import BackgroundMode, LEN_SIZES, REPEATS
+from scripts.consts import SIZES, BackgroundMode, LEN_SIZES, REPEATS
 from scripts.utils import define_set_size
 from scripts.output import save_sizes
 
@@ -13,7 +13,7 @@ def set_background_mode(background_mode: BackgroundMode, repeats: int, gene_set_
 def define_sizes_in_random_mode(gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int) -> list[int]:
     sizes_used: set[int] = set()
     for genes in gene_sets.values():
-        size = define_set_size(len(genes), set_fraction, min_set_size)
+        size = define_set_size(len(genes), set_fraction, min_set_size, all_sizes=SIZES)
         sizes_used.add(size)
     return sorted(sizes_used)
 
@@ -39,7 +39,7 @@ def define_sizes_in_real_mode(gene_sets: dict[str, list[str]], set_fraction: flo
     for b in range(len_sizes):
         start = (b * n) // len_sizes
         end = ((b + 1) * n) // len_sizes
-        if start == end:  # if real_len_sizes > n
+        if start == end:  # if len_sizes > n
             continue
         bin_vals = sizes[start:end]
         sizes_used.append(int(np.median(bin_vals)))

@@ -2,7 +2,6 @@ import warnings
 warnings.filterwarnings(action='ignore', category=FutureWarning)
 warnings.filterwarnings(action='ignore', category=UserWarning)
 
-import random
 import pandas as pd
 import numpy as np
 import scanpy as sc
@@ -134,15 +133,13 @@ def scale_pseudotime(pseudotime: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def get_cell_types(cell_types: pd.DataFrame) -> list[str]:
+def get_cell_types(cell_types: pd.DataFrame | None) -> list[str]:
     cell_type_list = (cell_types[CELL_TYPE_COL].unique().tolist() + [ALL_CELLS]) if cell_types is not None else []
-    random.shuffle(cell_type_list)
     return cell_type_list
 
 
-def get_lineages(pseudotime: pd.DataFrame) -> list[str]:
+def get_lineages(pseudotime: pd.DataFrame | None) -> list[str]:
     lineage_list = pseudotime.columns.tolist() if pseudotime is not None else []
-    random.shuffle(lineage_list)
     return lineage_list
 
 
