@@ -152,7 +152,7 @@ def aggregate_result(result_type: str, output: str, tmp: str | None) -> pd.DataF
     if df is not None:  # if run was in a single batch or results already aggregated
         if 'fdr' not in df.columns:
             df['fdr'] = adjust_p_value(df['p_value'])
-            df['effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
+            df['corrected_effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
             save_csv(df, result_type, output, keep_index=False)
         return df
     
@@ -167,7 +167,7 @@ def aggregate_result(result_type: str, output: str, tmp: str | None) -> pd.DataF
     
     df = pd.concat(dfs, ignore_index=True)
     df['fdr'] = adjust_p_value(df['p_value'])
-    df['effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
+    df['corrected_effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
     save_csv(dd.from_pandas(df, npartitions=1), result_type, output, keep_index=False)
     return df
 
