@@ -4,9 +4,10 @@ import pandas as pd
 from unittest.mock import patch
 from scripts.aggregate import calculate_p_value, evaluate_and_correct_result, aggregate
 from scripts.consts import TARGET_COL, BackgroundMode
+from tests.interface import Test
 
 
-class CalculatePValueTest(unittest.TestCase):
+class CalculatePValueTest(Test):
 
     def test_uses_mem_cache_on_second_call(self):
         """Verify mem_cache is used to avoid reloading background scores."""
@@ -88,7 +89,7 @@ class CalculatePValueTest(unittest.TestCase):
             self.assertAlmostEqual(bg_mean, np.mean(background_scores))
 
 
-class EvaluateAndCorrectResultTest(unittest.TestCase):
+class EvaluateAndCorrectResultTest(Test):
 
     def _create_result_df(self, targets: list[str], scores: list[float], sizes: list[int]) -> pd.DataFrame:
         return pd.DataFrame({
@@ -149,7 +150,7 @@ class EvaluateAndCorrectResultTest(unittest.TestCase):
             self.assertEqual(call_kwargs['lineage'], 'Lineage1')
 
 
-class AggregateTest(unittest.TestCase):
+class AggregateTest(Test):
 
     @patch('scripts.aggregate.evaluate_and_correct_result')
     def test_calls_evaluate_for_both_classification_and_regression(self, mock_eval):
