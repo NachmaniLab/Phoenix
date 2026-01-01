@@ -312,7 +312,7 @@ def plot_volcano(
     output: str | None = None,
     format: str = 'png',
     target_col: str = TARGET_COL,
-    effect_col: str = "effect_size",
+    effect_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
     fdr_thresh: float = 0.05,
     effect_thresh: float = 1,
