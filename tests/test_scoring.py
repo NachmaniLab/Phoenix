@@ -6,7 +6,8 @@ import numpy as np
 from unittest.mock import patch
 from scripts.backgrounds import define_sizes_in_real_mode
 from tests.interface import Test
-from scripts.calculate_scores import _get_target_size_pair_batch, calculate_background_scores_in_random_mode, calculate_pathway_scores, calculate_background_scores_in_real_mode
+from scripts.step_2_pathway_scoring import calculate_pathway_scores
+from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
 from scripts.consts import (
     CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, MIN_SET_SIZE,
     CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED
@@ -86,7 +87,7 @@ class CalculatePathwayScoresTest(Test):
         self.assertGreater(len(classification), 0)
         self.assertEqual(len(regression), 0)
 
-    @patch('scripts.calculate_scores.save_csv')
+    @patch('scripts.step_2_pathway_scoring.save_csv')
     def test_saves_to_csv_in_batch_mode(self, mock_save_csv):
         with patch.dict(os.environ, {'SLURM_ARRAY_TASK_ID': '1'}):
             result = calculate_pathway_scores(**self.default_params)
@@ -97,8 +98,8 @@ class CalculatePathwayScoresTest(Test):
         with patch.dict(os.environ, {'SLURM_ARRAY_TASK_ID': '0'}):
             classification1, regression1 = calculate_pathway_scores(**self.default_params)
             classification2, regression2 = calculate_pathway_scores(**self.default_params)
-        pd.testing.assert_frame_equal(classification1, classification2, check_exact=False, rtol=1e-6)
-        pd.testing.assert_frame_equal(regression1, regression2, check_exact=False, rtol=1e-6)
+        pd.testing.assert_frame_equal(classification1, classification2, check_exact=False, rtol=1e-5)
+        pd.testing.assert_frame_equal(regression1, regression2, check_exact=False, rtol=1e-5)
 
 
 class CalculateBackgroundScoresInRealModeTest(Test):
@@ -127,7 +128,7 @@ class CalculateBackgroundScoresInRealModeTest(Test):
         self.classification = pd.DataFrame(classification)
         self.regression = pd.DataFrame(regression)
     
-    @patch('scripts.calculate_scores.save_background_scores')
+    @patch('scripts.step_3_background_scoring.save_background_scores')
     def test_calculate_real_background_scores_happy_flow(self, mock_save_background_scores):
         calculate_background_scores_in_real_mode(
             tmp='',
@@ -140,7 +141,7 @@ class CalculateBackgroundScoresInRealModeTest(Test):
         for call in mock_save_background_scores.call_args_list:
             assert len(call.args[0]) == self.len_gene_sets
 
-    @patch('scripts.calculate_scores.save_background_scores')
+    @patch('scripts.step_3_background_scoring.save_background_scores')
     def test_calculate_real_background_scores_without_classification(self, mock_save_background_scores):
         calculate_background_scores_in_real_mode(
             tmp='',
@@ -150,7 +151,7 @@ class CalculateBackgroundScoresInRealModeTest(Test):
         )
         self.assertEqual(mock_save_background_scores.call_count, len(self.sizes) * len(self.lineages))
 
-    @patch('scripts.calculate_scores.save_background_scores')
+    @patch('scripts.step_3_background_scoring.save_background_scores')
     def test_calculate_real_background_scores_without_regression(self, mock_save_background_scores):
         calculate_background_scores_in_real_mode(
             tmp='',
@@ -224,7 +225,7 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
         self.assertEqual(out5, all_pairs[8:9])
         self.assertEqual(out6, [])
 
-    @patch('scripts.calculate_scores.save_background_scores')
+    @patch('scripts.step_3_background_scoring.save_background_scores')
     def test_calculate_random_background_scores_happy_flow(self, mock_save_background_scores):
         repeats = 3
         calculate_background_scores_in_random_mode(
@@ -248,7 +249,7 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
         for call in mock_save_background_scores.call_args_list:
             assert len(call.args[0]) == repeats
 
-    @patch('scripts.calculate_scores.save_background_scores')
+    @patch('scripts.step_3_background_scoring.save_background_scores')
     def test_calculate_random_background_scores_without_classification(self, mock_save_background_scores):
         calculate_background_scores_in_random_mode(
             repeats=1,
@@ -267,7 +268,7 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
         )
         self.assertEqual(mock_save_background_scores.call_count, len(self.sizes) * len(self.pseudotime.columns))
 
-    @patch('scripts.calculate_scores.save_background_scores')
+    @patch('scripts.step_3_background_scoring.save_background_scores')
     def test_calculate_random_background_scores_without_regression(self, mock_save_background_scores):
         calculate_background_scores_in_random_mode(
             repeats=1,

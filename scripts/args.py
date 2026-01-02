@@ -1,6 +1,6 @@
 import argparse, os
 from scripts.consts import *
-from scripts.output import create_dir
+from scripts.output import create_dir, save_args
 from scripts.utils import get_full_path, parse_missing_args, str2enum
 
 
@@ -145,6 +145,7 @@ def get_run_args():
     args = parse_missing_args(args)
     args = process_run_args(args)
     validate_run_args(args)
+    save_args(args, args.output)
     return args
 
 

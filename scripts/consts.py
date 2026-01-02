@@ -114,6 +114,7 @@ SET_FRACTION = 0.75
 MIN_SET_SIZE = SIZES[0]
 SEED = 3407
 THRESHOLD = 0.05  # TODO: add param
+EFFECT_SIZE_THRESHOLD = 0.3  # TODO: add param
 
 # Resources
 MEM = 10

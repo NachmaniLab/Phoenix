@@ -1,13 +1,34 @@
+import argparse
+from enum import Enum
 import os, yaml, glob, json  # type: ignore[import-untyped]
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
 from scripts.consts import TARGET_COL, CELL_TYPE_COL, BackgroundMode
-from scripts.utils import make_valid_filename, convert_to_str, convert_from_str, adjust_p_value, correct_effect_size
+from scripts.utils import enum2str, make_valid_filename, convert_from_str, adjust_p_value, correct_effect_size
 
 
 # TODO: add methods to return paths of cache, reports and batch results (if needed)
+
+
+def _get_args_filename() -> str:
+    return 'run_args.json'
+
+
+def save_args(args: argparse.Namespace, output_path: str) -> None:
+    for key, value in vars(args).items():
+        if isinstance(value, Enum):
+            setattr(args, key, enum2str(value))
+    path = os.path.join(output_path, _get_args_filename())
+    with open(path, 'w') as file:
+        json.dump(vars(args), file, indent=4)
+
+
+def read_args(output_path: str) -> dict:
+    path = os.path.join(output_path, _get_args_filename())
+    with open(path, 'r') as file:
+        return json.load(file)
 
 
 def read_csv(path: str, index_col: int = 0, dtype=None, verbose: bool = False) -> pd.DataFrame:
@@ -109,28 +130,6 @@ def save_gene_sets(gene_sets: dict[str, list[str]], output_path: str, title: str
             save_csv(pd.DataFrame(df[col]).dropna(), col, output_path, keep_index=False)
 
 
-def summarise_result(target, set_name, top_genes, gene_importances, set_size, feature_selection, predictor, metric, cross_validation, repeats, distribution, seed, pathway_score, background_scores: list[float], p_value):
-    result = {
-        TARGET_COL: target,
-        'set_name': set_name,
-        'top_genes': top_genes,
-        'gene_importances': gene_importances if gene_importances is not None else 'None',
-        'set_size': set_size,
-        'feature_selection': feature_selection if feature_selection else 'None',
-        'predictor': predictor,
-        'metric': metric,
-        'cross_validation': cross_validation,
-        'repeats': repeats,
-        'distribution': distribution,
-        'seed': seed,
-        'pathway_score': pathway_score,
-        'background_scores': background_scores,
-        'background_score_mean': np.mean(background_scores),
-        'p_value': p_value,
-    }
-    return {key: convert_to_str(value) for key, value in result.items()}
-
-
 def read_results(title: str, output_path: str, index_col: int | None = None, raise_err: bool = False) -> pd.DataFrame | None:
     try:
         title = f'{title}.csv' if '.csv' not in title else title
@@ -145,31 +144,6 @@ def get_preprocessed_data(data: pd.DataFrame | str, output_path: str) -> pd.Data
     if isinstance(data, str):
         data = read_results(data, output_path, index_col=0, raise_err=True)
     return data
-
-
-def aggregate_result(result_type: str, output: str, tmp: str | None) -> pd.DataFrame | None:
-    df = read_results(result_type, output)
-    if df is not None:  # if run was in a single batch or results already aggregated
-        if 'fdr' not in df.columns:
-            df['fdr'] = adjust_p_value(df['p_value'])
-            df['corrected_effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
-            save_csv(df, result_type, output, keep_index=False)
-        return df
-    
-    dfs = []
-    for path in glob.glob(os.path.join(tmp, f'{result_type}_batch*.csv')):  # type: ignore[arg-type]
-        df = read_results(os.path.basename(path), tmp, index_col=None)  # type: ignore[arg-type]
-        if df is not None:
-            dfs.append(df)
-
-    if not dfs:  # if result type is missing
-        return None
-    
-    df = pd.concat(dfs, ignore_index=True)
-    df['fdr'] = adjust_p_value(df['p_value'])
-    df['corrected_effect_size'] = correct_effect_size(df['effect_size'], df[TARGET_COL])
-    save_csv(dd.from_pandas(df, npartitions=1), result_type, output, keep_index=False)
-    return df
 
 
 def aggregate_batch_results(tmp: str, result_type: str) -> pd.DataFrame | None:

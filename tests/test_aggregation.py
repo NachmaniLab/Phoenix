@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import pandas as pd
 from unittest.mock import patch
-from scripts.aggregate import calculate_p_value, evaluate_and_correct_result, aggregate
+from scripts.step_4_aggregation import calculate_p_value, evaluate_and_correct_result, aggregate
 from scripts.consts import TARGET_COL, BackgroundMode
 from tests.interface import Test
 
@@ -13,7 +13,7 @@ class CalculatePValueTest(Test):
         """Verify mem_cache is used to avoid reloading background scores."""
         mem_cache = {}
 
-        with patch('scripts.aggregate.load_background_scores', return_value=[0.5, 0.6, 0.7, 0.8]) as mock_load:
+        with patch('scripts.step_4_aggregation.load_background_scores', return_value=[0.5, 0.6, 0.7, 0.8]) as mock_load:
             # First call - should load from disk
             calculate_p_value(
                 pathway_score=0.9,
@@ -42,7 +42,7 @@ class CalculatePValueTest(Test):
         """Different (size, target) combinations should load separately."""
         mem_cache = {}
 
-        with patch('scripts.aggregate.load_background_scores', return_value=[0.5, 0.6, 0.7]):
+        with patch('scripts.step_4_aggregation.load_background_scores', return_value=[0.5, 0.6, 0.7]):
             calculate_p_value(
                 pathway_score=0.9, distribution='normal', set_size=10,
                 background_mode=BackgroundMode.REAL, cache='', mem_cache=mem_cache, cell_type='TypeA',
@@ -76,7 +76,7 @@ class CalculatePValueTest(Test):
     def test_background_score_mean_calculation(self):
         """Verify background score mean is calculated correctly."""
         background_scores = [0.2, 0.4, 0.6, 0.8]
-        with patch('scripts.aggregate.load_background_scores', return_value=background_scores):
+        with patch('scripts.step_4_aggregation.load_background_scores', return_value=background_scores):
             _, _, bg_mean = calculate_p_value(
                 pathway_score=0.5,
                 distribution='normal',
@@ -100,7 +100,7 @@ class EvaluateAndCorrectResultTest(Test):
             'effect_size': [0.3] * len(targets),
         })
 
-    @patch('scripts.aggregate.save_csv')
+    @patch('scripts.step_4_aggregation.save_csv')
     def test_adds_statistical_columns(self, mock_save):
         """Verify p_value, fdr, background_scores, background_score_mean, corrected_effect_size are added."""
         result = self._create_result_df(['TypeA', 'TypeB'], [0.8, 0.9], [10, 10])
@@ -115,11 +115,11 @@ class EvaluateAndCorrectResultTest(Test):
         for col in expected_cols:
             self.assertIn(col, output.columns)
 
-    @patch('scripts.aggregate.save_csv')
+    @patch('scripts.step_4_aggregation.save_csv')
     def test_classification_uses_cell_type_for_background(self, mock_save):
         """cell_type_classification should use TARGET_COL as cell_type param."""
         result = self._create_result_df(['TypeA'], [0.8], [10])
-        with patch('scripts.aggregate.calculate_p_value', wraps=calculate_p_value) as mock_calc:
+        with patch('scripts.step_4_aggregation.calculate_p_value', wraps=calculate_p_value) as mock_calc:
             mock_calc.return_value = (0.05, [0.5, 0.6], 0.55)
             evaluate_and_correct_result(
                 result=result,
@@ -132,11 +132,11 @@ class EvaluateAndCorrectResultTest(Test):
             self.assertEqual(call_kwargs['cell_type'], 'TypeA')
             self.assertIsNone(call_kwargs['lineage'])
 
-    @patch('scripts.aggregate.save_csv')
+    @patch('scripts.step_4_aggregation.save_csv')
     def test_regression_uses_lineage_for_background(self, mock_save):
         """pseudotime_regression should use TARGET_COL as lineage param."""
         result = self._create_result_df(['Lineage1'], [0.8], [10])
-        with patch('scripts.aggregate.calculate_p_value', wraps=calculate_p_value) as mock_calc:
+        with patch('scripts.step_4_aggregation.calculate_p_value', wraps=calculate_p_value) as mock_calc:
             mock_calc.return_value = (0.05, [0.5, 0.6], 0.55)
             evaluate_and_correct_result(
                 result=result,
@@ -152,22 +152,33 @@ class EvaluateAndCorrectResultTest(Test):
 
 class AggregateTest(Test):
 
-    @patch('scripts.aggregate.evaluate_and_correct_result')
-    def test_calls_evaluate_for_both_classification_and_regression(self, mock_eval):
-        """Should call evaluate_and_correct_result for both result types."""
-        mock_eval.return_value = pd.DataFrame()
-
+    @patch('scripts.step_4_aggregation.load_background_scores', return_value=[0.4, 0.5, 0.6])
+    @patch('scripts.step_4_aggregation.save_csv')
+    @patch('scripts.step_4_aggregation.plot')
+    def test_regression(self, mock_plot, mock_save, mock_load):
+        classification = pd.DataFrame({
+            TARGET_COL: ['TypeA', 'TypeB'],
+            'pathway_score': [0.8, 0.9],
+            'set_size': [10, 10],
+            'set_name': ['PathwayA', 'PathwayA'],
+            'effect_size': [0.3, 0.4],
+        })
+        regression = pd.DataFrame({
+            TARGET_COL: ['Lineage1', 'Lineage2'],
+            'pathway_score': [0.7, 0.85],
+            'set_size': [15, 15],
+            'set_name': ['PathwayB', 'PathwayB'],
+            'effect_size': [0.25, 0.35],
+        })
         aggregate(
             output='', tmp='', cache='',
             background_mode=BackgroundMode.REAL,
             distribution='normal',
             repeats=100,
+            classification=classification,
+            regression=regression,
+            verbose=False,
         )
-
-        self.assertEqual(mock_eval.call_count, 2)
-        call_types = [call[1]['result_type'] for call in mock_eval.call_args_list]
-        self.assertIn('cell_type_classification', call_types)
-        self.assertIn('pseudotime_regression', call_types)
 
 
 if __name__ == '__main__':

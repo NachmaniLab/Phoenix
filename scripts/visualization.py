@@ -8,7 +8,7 @@ from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
 from scripts.utils import remove_outliers, get_color_mapping, convert_to_sci
-from scripts.output import save_plot, get_experiment, get_preprocessed_data, save_csv 
+from scripts.output import read_args, save_plot, get_experiment, get_preprocessed_data, save_csv 
 from scripts.consts import THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE
 
 
@@ -90,6 +90,8 @@ def plot_p_values(
 
 def _plot_prediction_scores(
         experiment: dict[str, str | float | list[str]],
+        distribution: str,
+        metric: str,
         by_freq: bool = True,
         show_fit: bool = True,
         add_legend: bool = False,
@@ -122,7 +124,7 @@ def _plot_prediction_scores(
         sns.kdeplot(fill=True, **plot_args)
         plt.ylabel('Density')
 
-    if show_fit and 'distribution' in experiment.keys() and experiment['distribution'] == 'gamma':
+    if show_fit and distribution == 'gamma':
         shape, loc, scale = stats.gamma.fit(background_scores)
         x = np.linspace(min(background_scores), max(background_scores), 1000)
         pdf = stats.gamma.pdf(x, shape, loc=loc, scale=scale)
@@ -131,7 +133,7 @@ def _plot_prediction_scores(
         fit_values = np.interp(bin_centers, x, pdf * len(background_scores) * np.diff(bin_edges)[0])  # scale fit to match histogram frequency
         plt.plot(bin_centers, fit_values, color='grey', lw=2, label='Gamma fit')
 
-    plt.xlabel(experiment['metric'])  # type: ignore[arg-type]
+    plt.xlabel(metric)  # type: ignore[arg-type]
     if add_legend:
         plt.legend(fontsize=LEGEND_FONT_SIZE)
     plt.title(title)
@@ -397,6 +399,7 @@ def plot_experiment(
         target_type: str,
         results: pd.DataFrame | str,
         target_data: pd.DataFrame | str,
+        args: dict | None = None,
         expression: pd.DataFrame | str = 'expression',
         reduction: pd.DataFrame | str = 'reduction',
         as_single_row: bool = False,
@@ -411,6 +414,7 @@ def plot_experiment(
     target_type = target_type.lower().replace('-', '_')
     assert target_type in ['cell_types', 'pseudotime']
 
+    args = args or read_args(output)
     expression = get_preprocessed_data(expression, output)
     reduction = get_preprocessed_data(reduction, output)
     target_data = get_preprocessed_data(target_data, output)
@@ -425,7 +429,8 @@ def plot_experiment(
 
     # Gene set prediction score
     plt.subplot(2, 2, 1) if not as_single_row else plt.subplot(1, 4, 1)
-    _plot_prediction_scores(experiment, add_legend=not as_single_row)
+    metric_name = 'classification_metric' if target_type == 'cell_types' else 'regression_metric'
+    _plot_prediction_scores(experiment, distribution=args['distribution'], metric=args[metric_name], add_legend=not as_single_row)
 
     # Gene set expression distribution
     plt.subplot(2, 2, 2) if not as_single_row else plt.subplot(1, 4, 2)
@@ -480,6 +485,7 @@ def plot_all_cell_types_and_trajectories(
 
 def plot(
         output: str,
+        args: dict | None = None,
         expression: pd.DataFrame | str = 'expression', 
         reduction: pd.DataFrame | str = 'reduction', 
         cell_types: pd.DataFrame | str = 'cell_types',
@@ -494,6 +500,7 @@ def plot(
     top: number of top pathways to plot for each target
     all: whether to plot all pathways
     """
+    args = args or read_args(output)
     expression = get_preprocessed_data(expression, output)
     reduction = get_preprocessed_data(reduction, output)
     cell_types = get_preprocessed_data(cell_types, output)
@@ -520,7 +527,7 @@ def plot(
             heatmap_pathways = data.index
             for target in data.columns:
                 for pathway_name in heatmap_pathways:
-                    plot_experiment(output, target, pathway_name, target_type, results, target_data, expression, reduction)
+                    plot_experiment(output, target, pathway_name, target_type, results, target_data, args, expression, reduction)
 
         else:  # plot interesting pathways
             size = max(MAP_SIZE // data.shape[1], 1)
@@ -534,7 +541,7 @@ def plot(
                     heatmap_pathways.extend(pathway_names[:size])
                     for pathway_name in pathway_names:
                         exp_plot_pathways.append((target, pathway_name))
-                        plot_experiment(output, target, pathway_name, target_type, results, target_data, expression, reduction)
+                        plot_experiment(output, target, pathway_name, target_type, results, target_data, args, expression, reduction)
             # heatmap_pathways.extend(get_top_sum_pathways(data, ascending=False, size=3))
             data = data.drop(non_unique_targets, axis=1)
 

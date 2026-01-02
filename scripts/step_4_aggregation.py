@@ -1,9 +1,11 @@
+import time as runtime
 import numpy as np
 import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
 from scripts.output import aggregate_batch_results, load_background_scores, save_csv
 from scripts.prediction import compare_scores
 from scripts.utils import convert_to_str, correct_effect_size, define_background, adjust_p_value
+from scripts.visualization import plot
 
 
 def calculate_p_value(
@@ -38,7 +40,7 @@ def evaluate_and_correct_result(
         cache: str,
         repeats: int,
     ) -> pd.DataFrame | None:
-    result = result.copy() if result is not None else aggregate_batch_results(tmp, result_type)
+    result = result if result is not None else aggregate_batch_results(tmp, result_type)
     if result is None:
         return None
         
@@ -84,7 +86,12 @@ def aggregate(
         repeats: int,
         classification: pd.DataFrame | None = None,
         regression: pd.DataFrame | None = None,
+        start_time: float | None = None,
+        verbose: bool = True,
     ) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
+    if verbose:
+        print('Aggregating and evaluating results...')
+
     classification = evaluate_and_correct_result(
         classification,
         result_type='cell_type_classification',
@@ -105,4 +112,16 @@ def aggregate(
         cache=cache,
         repeats=repeats,
     )
+
+    if verbose:
+        print('Plotting results...')
+    plot(output)
+
+    if verbose and start_time is not None:
+        elapsed = runtime.time() - start_time
+        hours = int(elapsed // 3600)
+        minutes = int((elapsed % 3600) // 60)
+        seconds = int(elapsed % 60)
+        print(f"Runtime: {hours}h {minutes}m {seconds}s")
+
     return classification, regression

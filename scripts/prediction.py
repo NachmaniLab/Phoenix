@@ -1,16 +1,130 @@
-import os
-import warnings
-import sys
 import random
-from tqdm import tqdm
+import inspect
+import warnings
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from scripts.data import get_cell_types, get_lineages, calculate_cell_type_effect_size, calculate_pseudotime_effect_size
-from scripts.train import get_train_data, train
-from scripts.consts import CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS, SIZES, BackgroundMode
-from scripts.utils import define_background, define_set_size, remove_outliers
-from scripts.output import load_background_scores, save_background_scores, summarise_result, save_csv, get_preprocessed_data
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.feature_selection import SelectKBest, f_classif, f_regression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics import make_scorer
+from scripts.consts import ALL_CELLS, SEED, CELL_TYPE_COL, METRICS, CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS
+from scripts.utils import show_runtime
+
+
+def get_train_target(
+        cell_types: pd.DataFrame | None = None,
+        scaled_pseudotime: pd.DataFrame | None = None,
+        cell_type: str | None = None,
+        lineage: str | None = None,
+    ):
+    if scaled_pseudotime is not None:
+        return scaled_pseudotime.loc[:, lineage].dropna()
+    
+    if cell_type == ALL_CELLS:
+        return cell_types[CELL_TYPE_COL]  # type: ignore[index]
+    return cell_types[CELL_TYPE_COL] == cell_type  # type: ignore[index]
+
+
+def get_train_data(
+        scaled_expression: pd.DataFrame,
+        features: list[str] | None = None,
+        cell_types: pd.DataFrame | None = None,
+        scaled_pseudotime: pd.DataFrame | None = None,
+        cell_type: str | None = None,
+        lineage: str | None = None,
+        set_size: int | None = None,
+        feature_selection: str | None = None,
+        selection_args: dict = {},
+        ordered_selection: bool = False,
+        seed: int = SEED
+    ) -> tuple[np.ndarray, pd.Series, list[str], list[float] | None]:
+    """
+    feature_selection: either 'ANOVA' or 'RF', supported for both classification and regression
+    ordered_selection: ignored if feature_selection is set
+    """
+    assert (cell_types is not None and cell_type is not None) or (scaled_pseudotime is not None and lineage is not None)
+    is_regression = scaled_pseudotime is not None
+
+    y = get_train_target(cell_types, scaled_pseudotime, cell_type, lineage)
+    cells = y.index
+    features = [f for f in features if f in scaled_expression.columns] if features is not None else scaled_expression.columns
+    X = scaled_expression.loc[cells, features].to_numpy()
+
+    set_size = min(set_size, len(features)) if set_size is not None else len(features)
+
+    # Select best features using either ANOVA or RF
+    if feature_selection is not None:
+        if feature_selection == 'ANOVA':
+            selected_features = SelectKBest(score_func=f_regression if is_regression else f_classif, k=set_size).fit(X, y)
+            selected_indices = selected_features.get_support(indices=True)
+            selected_genes = [features[i] for i in selected_indices]
+            importances = selected_features.scores_[selected_indices].tolist()
+            return selected_features.transform(X), y, selected_genes, importances
+        
+        if feature_selection == 'RF':
+            if 'n_estimators' not in selection_args.keys():
+                selection_args['n_estimators'] = 50
+            if is_regression:
+                importances = RandomForestRegressor(random_state=seed, **selection_args).fit(X, y).feature_importances_
+            else:
+                importances = RandomForestClassifier(random_state=seed, class_weight='balanced', **selection_args).fit(X, y).feature_importances_
+            selected_indices = (-importances).argsort()[:set_size]
+            selected_genes = [features[i] for i in selected_indices]
+            return X[:, selected_indices], y, selected_genes, importances[selected_indices].tolist()
+        
+        raise ValueError(f'Unsupported feature selection method {feature_selection}')
+
+    # Select first
+    if ordered_selection:
+        return X[:, :set_size], y, features[:set_size], None
+
+    # Select randomly
+    selected_indices = random.Random(seed).sample(list(range(X.shape[1])), set_size)
+    return X[:, selected_indices], y, [features[i] for i in selected_indices], None
+
+
+@show_runtime
+def train(
+        X, y,
+        predictor,
+        predictor_args: dict,
+        metric: str,
+        cross_validation: int | None = None,
+        balanced_weights: bool = True,
+        train_size: float = 0.8,
+        bins: int = 3,
+        seed: int = SEED,
+    ) -> float:
+
+    if 'n_jobs' in inspect.signature(predictor).parameters:
+        predictor_args['n_jobs'] = -1  # all processes
+    if 'random_state' in inspect.signature(predictor).parameters:
+        predictor_args['random_state'] = seed
+    if balanced_weights and 'class_weight' in inspect.signature(predictor).parameters:
+        predictor_args['class_weight'] = 'balanced'
+
+    model = predictor(**predictor_args)
+    score_func = make_scorer(METRICS[metric], greater_is_better=True)
+
+    if isinstance(y.iloc[0], str):
+        y = LabelEncoder().fit_transform(y)
+
+    if cross_validation:
+        score = np.median(cross_val_score(model, X, y, cv=cross_validation, scoring=score_func))
+
+    else:
+        stratify = pd.cut(y, bins=bins, labels=False) if y.dtype == float else y
+        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=stratify, train_size=train_size, random_state=seed)
+
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        score = score_func(y_test, y_pred)
+
+    del model
+    return float(score)
 
 
 def get_prediction_score(
@@ -80,163 +194,3 @@ def compare_scores(pathway_score: float, background_scores: list[float], distrib
         raise ValueError('Unsupported distribution type. Use `normal` or `gamma`')
 
     return p_value if not np.isnan(p_value) else 1.0
-
-
-def run_comparison(
-        scaled_expression: pd.DataFrame,
-        gene_set: list[str],
-        predictor: str,
-        metric: str,
-        set_size: int,
-        feature_selection: str | None,
-        cross_validation: int,
-        repeats: int,
-        seed: int,
-        distribution: str,
-        cell_types: pd.DataFrame | None = None,
-        scaled_pseudotime: pd.DataFrame | None = None,
-        cell_type: str | None = None,
-        lineage: str | None = None,
-        trim_background: bool = True,
-        cache: str | None = None
-    ) -> tuple[float, float, list[float], list[str], list[float] | None]:
-
-    prediction_args = {
-        'scaled_expression': scaled_expression,
-        'predictor': predictor,
-        'metric': metric,
-        'cross_validation': cross_validation,
-        'set_size': set_size,
-        'cell_types': cell_types,
-        'scaled_pseudotime': scaled_pseudotime,
-        'cell_type': cell_type,
-        'lineage': lineage,
-    }
-
-    # Pathway of interest
-    pathway_score, top_genes, gene_importances = get_prediction_score(seed=seed, gene_set=gene_set, feature_selection=feature_selection, **prediction_args)
-
-    # Background
-    background = define_background(set_size, BackgroundMode.RANDOM, cell_type, lineage, repeats)
-    background_scores = load_background_scores(background, cache)
-    if not background_scores:
-        for i in range(repeats):
-            background_scores.append(get_prediction_score(seed=i, **prediction_args)[0])
-        if trim_background:
-            background_scores = remove_outliers(background_scores)
-        save_background_scores(background_scores, background, cache)
-
-    # Compare scores
-    p_value = compare_scores(pathway_score, background_scores, distribution)
-
-    return p_value, pathway_score, background_scores, top_genes, gene_importances
-
-
-def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, batch_size: int) -> dict[str, list[str]]:
-    """
-    batch: number between 1 and `processes`, or 0 for a single batch
-    """
-    if not batch:
-        return gene_sets
-    batch_start = (batch - 1) * batch_size
-    batch_end = min(batch_start + batch_size, len(gene_sets))
-    set_names = list(gene_sets.keys())[batch_start:batch_end]
-    return {set_name: gene_sets[set_name] for set_name in set_names}
-
-
-def run_batch(
-        batch: int,
-        batch_gene_sets: dict[str, list[str]],
-        scaled_expression: pd.DataFrame,
-        cell_types: pd.DataFrame,
-        scaled_pseudotime: pd.DataFrame,
-        feature_selection: str,
-        set_fraction: float,
-        min_set_size: int,
-        classifier: str,
-        regressor: str,
-        classification_metric: str,
-        regression_metric: str,
-        cross_validation: int,
-        repeats: int,
-        seed: int,
-        distribution: str,
-        output: str,
-        cache: str,
-        effect_size_threshold: float = 0.3,
-        verbose: bool = True,
-    ) -> None:
-    """
-    output: main output path for a single batch and temp output path for many batches
-    batch: number between 1 and `processes`, or 0 for a single batch
-    """
-    if batch_gene_sets is None:
-        return
-
-    classification_results, regression_results = [], []
-    all_cell_types, all_lineages = get_cell_types(cell_types), get_lineages(scaled_pseudotime)
-
-    logger = f'Batch {batch}: ' if batch else ''    
-    for i, (set_name, gene_set) in tqdm(
-        enumerate(batch_gene_sets.items()),
-        total=len(batch_gene_sets),
-        desc='Batch',
-        ncols=80,
-        ascii=True,
-        file=sys.stdout if batch else None,
-        disable=not verbose,
-    ):
-        if verbose:
-
-            print(f'\n{logger}Pathway {i + 1}/{len(batch_gene_sets)}: {set_name}', flush=True)
-            sys.stdout.flush()
-
-        set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=SIZES)
-        task_args = {
-            'scaled_expression': scaled_expression, 'gene_set': gene_set,
-            'set_size': set_size, 'feature_selection': feature_selection,
-            'cross_validation': cross_validation, 'repeats': repeats,
-            'seed': seed, 'distribution': distribution, 'cache': cache
-        }
-
-        # Cell-type classification
-        random.shuffle(all_cell_types)
-        for cell_type in all_cell_types:
-            p_value, pathway_score, background_scores, top_genes, gene_importances = run_comparison(
-                predictor=classifier, metric=classification_metric,
-                cell_types=cell_types, cell_type=cell_type,
-                **task_args
-            )
-            classification_results.append(summarise_result(
-                cell_type, set_name, top_genes, gene_importances, set_size, feature_selection, classifier, classification_metric,
-                cross_validation, repeats, distribution, seed, pathway_score, background_scores, p_value
-            ))
-        
-        # Pseudo-time regression
-        random.shuffle(all_lineages)
-        for lineage in all_lineages:
-            p_value, pathway_score, background_scores, top_genes, gene_importances = run_comparison(
-                predictor=regressor, metric=regression_metric,
-                scaled_pseudotime=scaled_pseudotime, lineage=lineage,
-                **task_args
-            )
-
-            regression_results.append(summarise_result(
-                lineage, set_name, top_genes, gene_importances, set_size, feature_selection, regressor, regression_metric,
-                cross_validation, repeats, distribution, seed, pathway_score, background_scores, p_value
-            ))
-
-    classification = pd.DataFrame(classification_results)
-    regression = pd.DataFrame(regression_results)
-
-    # Add effect size
-    main_output_path = output if not batch else os.path.dirname(output)
-    expression = get_preprocessed_data('expression', main_output_path)  # not scaled
-    masked_expression = expression.mask(expression <= effect_size_threshold)
-    classification['effect_size'] = classification.apply(calculate_cell_type_effect_size, axis=1, masked_expression=masked_expression, cell_types=cell_types)
-    regression['effect_size'] = regression.apply(calculate_pseudotime_effect_size, axis=1, masked_expression=masked_expression, pseudotime=scaled_pseudotime)
-
-    # Save results
-    info = f'_batch{batch}' if batch else ''
-    save_csv(classification, f'cell_type_classification{info}', output, keep_index=False)
-    save_csv(regression, f'pseudotime_regression{info}', output, keep_index=False)

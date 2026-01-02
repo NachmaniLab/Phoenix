@@ -216,7 +216,8 @@ class PreprocessingTest(Test):
             axis=1,
             masked_expression=expression,
             pseudotime=pseudotime,
-            percentile=0.3
+            percentile=0.3,
+            bins=2
         )
 
         mean_min1 = 6
