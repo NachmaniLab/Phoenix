@@ -77,7 +77,7 @@ class CalculatePValueTest(Test):
         """Verify background score mean is calculated correctly."""
         background_scores = [0.2, 0.4, 0.6, 0.8]
         with patch('scripts.step_4_aggregation.load_background_scores', return_value=background_scores):
-            _, _, bg_mean = calculate_p_value(
+            _, bg_mean = calculate_p_value(
                 pathway_score=0.5,
                 distribution='normal',
                 set_size=10,
@@ -111,7 +111,7 @@ class EvaluateAndCorrectResultTest(Test):
             distribution='normal',
             output='', tmp='', cache='', repeats=100,
         )
-        expected_cols = ['p_value', 'fdr', 'background_scores', 'background_score_mean', 'corrected_effect_size']
+        expected_cols = ['p_value', 'fdr', 'background_score_mean', 'corrected_effect_size']
         for col in expected_cols:
             self.assertIn(col, output.columns)
 
@@ -120,7 +120,7 @@ class EvaluateAndCorrectResultTest(Test):
         """cell_type_classification should use TARGET_COL as cell_type param."""
         result = self._create_result_df(['TypeA'], [0.8], [10])
         with patch('scripts.step_4_aggregation.calculate_p_value', wraps=calculate_p_value) as mock_calc:
-            mock_calc.return_value = (0.05, [0.5, 0.6], 0.55)
+            mock_calc.return_value = (0.05, 0.55)
             evaluate_and_correct_result(
                 result=result,
                 result_type='cell_type_classification',
@@ -137,7 +137,7 @@ class EvaluateAndCorrectResultTest(Test):
         """pseudotime_regression should use TARGET_COL as lineage param."""
         result = self._create_result_df(['Lineage1'], [0.8], [10])
         with patch('scripts.step_4_aggregation.calculate_p_value', wraps=calculate_p_value) as mock_calc:
-            mock_calc.return_value = (0.05, [0.5, 0.6], 0.55)
+            mock_calc.return_value = (0.05, 0.55)
             evaluate_and_correct_result(
                 result=result,
                 result_type='pseudotime_regression',

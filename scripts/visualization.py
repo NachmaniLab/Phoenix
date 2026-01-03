@@ -7,9 +7,9 @@ import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
-from scripts.utils import remove_outliers, get_color_mapping, convert_to_sci
-from scripts.output import read_args, save_plot, get_experiment, get_preprocessed_data, save_csv 
-from scripts.consts import THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE
+from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, str2enum
+from scripts.output import read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
+from scripts.consts import THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
 
 
 sns.set_theme(style='white')
@@ -89,7 +89,15 @@ def plot_p_values(
 
 
 def _plot_prediction_scores(
-        experiment: dict[str, str | float | list[str]],
+        pathway_score: float,
+        fdr: float,
+        set_size: int,
+        background_score_mean: float,
+        background_mode: BackgroundMode,
+        cache: str,
+        cell_type: str | None,
+        lineage: str | None,
+        repeats: int,
         distribution: str,
         metric: str,
         by_freq: bool = True,
@@ -103,22 +111,23 @@ def _plot_prediction_scores(
     
     # Draw line for pathway of interest's score
     plt.axvline(
-        x=experiment['pathway_score'],  # type: ignore[arg-type]
+        x=pathway_score,
         color=INTEREST_COLOR,
-        label=f'Pathway: {np.round(experiment["pathway_score"], 3)}, p={convert_to_sci(experiment["fdr"])}',  # type: ignore[arg-type]
+        label=f'Pathway: {np.round(pathway_score, 3)}, p={convert_to_sci(fdr)}',
         linestyle='--'
     )
 
     # Draw distribution for background score
-    background_scores: list[float] = experiment['background_scores']  # type: ignore[assignment]
+    background = define_background(set_size, background_mode, cell_type, lineage, repeats)
+    background_scores: list[float] = load_background_scores(background, cache)
     plot_args = {
         'x': background_scores,
-        'label': f'Background: {np.round(experiment["background_score_mean"], 3)}',  # type: ignore[arg-type]
+        'label': f'Background: {np.round(background_score_mean, 3)}',
         'color': BACKGROUND_COLOR
     }
     
     if by_freq:
-        plt.hist(bins=50 if len(np.unique(background_scores)) > 50 else None, **plot_args)  # type: ignore[arg-type]
+        plt.hist(bins=50 if len(np.unique(background_scores)) > 50 else None, **plot_args)
         plt.ylabel('Frequency')
     else:
         sns.kdeplot(fill=True, **plot_args)
@@ -133,7 +142,7 @@ def _plot_prediction_scores(
         fit_values = np.interp(bin_centers, x, pdf * len(background_scores) * np.diff(bin_edges)[0])  # scale fit to match histogram frequency
         plt.plot(bin_centers, fit_values, color='grey', lw=2, label='Gamma fit')
 
-    plt.xlabel(metric)  # type: ignore[arg-type]
+    plt.xlabel(metric)
     if add_legend:
         plt.legend(fontsize=LEGEND_FONT_SIZE)
     plt.title(title)
@@ -429,8 +438,20 @@ def plot_experiment(
 
     # Gene set prediction score
     plt.subplot(2, 2, 1) if not as_single_row else plt.subplot(1, 4, 1)
-    metric_name = 'classification_metric' if target_type == 'cell_types' else 'regression_metric'
-    _plot_prediction_scores(experiment, distribution=args['distribution'], metric=args[metric_name], add_legend=not as_single_row)
+    _plot_prediction_scores(
+        pathway_score=experiment['pathway_score'],
+        fdr=experiment['fdr'],
+        set_size=experiment['set_size'],
+        background_score_mean=experiment['background_score_mean'],
+        background_mode=str2enum(BackgroundMode, args['background_mode']),
+        cache=os.path.join(output, 'cache'),
+        cell_type=target if target_type == 'cell_types' else None,
+        lineage=target if target_type == 'pseudotime' else None,
+        repeats=args['repeats'],
+        distribution=args['distribution'],
+        metric=args['classification_metric' if target_type == 'cell_types' else 'regression_metric'],
+        add_legend=not as_single_row
+    )
 
     # Gene set expression distribution
     plt.subplot(2, 2, 2) if not as_single_row else plt.subplot(1, 4, 2)
