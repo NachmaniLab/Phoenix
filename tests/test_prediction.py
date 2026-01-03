@@ -415,7 +415,6 @@ class PredictionScoreTest(Test):
         }, index=['Cell1', 'Cell2', 'Cell3', 'Cell4', 'Cell5', 'Cell6'])
 
         self.cross_validation = 3
-        self.repeats = 50
 
     def _get_p_value(self, gene_set, background_scores, **kwargs):
         pathway_score = get_prediction_score(gene_set=gene_set, seed=SEED, feature_selection=FEATURE_SELECTION, **kwargs)[0]

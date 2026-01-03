@@ -42,7 +42,7 @@ def run_background_scoring_cmd(args: dict, processes: int, mem: int, time: int, 
         previous_job_id=pathway_scoring_job_id,
         previous_processes=processes,
     )
-    return execute_sbatch_cmd(cmd, 'pathway scoring', processes)
+    return execute_sbatch_cmd(cmd, 'background scoring', processes)
 
 
 # Step 4: Aggregation and Statistical Evaluation
@@ -55,4 +55,4 @@ def run_aggregation_cmd(args: dict, processes: int, tmp: str, pathway_scoring_jo
         previous_job_id=pathway_scoring_job_id,
         previous_processes=processes,
     )
-    return execute_sbatch_cmd(cmd, 'pathway scoring')
+    return execute_sbatch_cmd(cmd, 'aggregation')
