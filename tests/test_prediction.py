@@ -471,7 +471,7 @@ class PredictionScoreTest(Test):
 
         # Good gene sets should be significant
         p_value = self._get_p_value(['Gene1'], background, **base_args)
-        # self.assertLessEqual(p_value, THRESHOLD)
+        self.assertLessEqual(p_value, THRESHOLD)
         p_value = self._get_p_value(['Gene3'], background, **base_args)
         self.assertLessEqual(p_value, THRESHOLD)
 
