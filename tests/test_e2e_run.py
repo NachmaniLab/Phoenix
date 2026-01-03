@@ -2,22 +2,39 @@ import warnings
 warnings.simplefilter('ignore', DeprecationWarning)
 warnings.simplefilter('ignore', PendingDeprecationWarning)
 
+import matplotlib
+matplotlib.use('Agg')
+
+import argparse
+import tempfile
 import unittest
 import shutil
 import os
 import pandas as pd
 import numpy as np
-
-import matplotlib
-matplotlib.use('Agg')
-
+from unittest.mock import patch
 from tests.interface import Test
 from run import run_tool
+from scripts.output import read_args, save_args
 from scripts.consts import (
     CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
     MIN_SET_SIZE, SEED, CELL_TYPE_COL, BackgroundMode
 )
+from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
+
+
+class LogArgsTest(Test):
+    def test_save_then_load_args(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(
+                expression='expr.csv',
+                cell_types=123,
+                background_mode=BackgroundMode.RANDOM,
+            )
+            save_args(args, tmp)
+            loaded = read_args(tmp)
+            self.assertEqual(loaded, vars(args))
 
 
 class E2ERunTest(Test):
@@ -78,7 +95,7 @@ class E2ERunTest(Test):
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
 
-    def get_args(self, processes: int = 0):
+    def get_args(self, background_mode: BackgroundMode, processes: int = 0):
         return {
             'expression': self.expression,
             'cell_types': self.cell_types,
@@ -98,7 +115,7 @@ class E2ERunTest(Test):
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
             'cross_validation': 2,
-            'background_mode': BackgroundMode.AUTO,
+            'background_mode': background_mode,
             'repeats': 2,
             'seed': SEED,
             'distribution': DISTRIBUTIONS[0],
@@ -111,9 +128,10 @@ class E2ERunTest(Test):
             'verbose': False,
         }
     
-    def test_e2e_local_run(self):
-
-        run_tool(**self.get_args())
+    def _run_e2e(self, background_mode: BackgroundMode):
+        args = self.get_args(background_mode=background_mode)
+        save_args(argparse.Namespace(**args), args['output'])
+        run_tool(**args)
 
         output_files = [
             'expression.csv',
@@ -121,21 +139,36 @@ class E2ERunTest(Test):
             'pseudotime.csv',
             'reduction.csv',
             'gene_sets.csv',
+            f'{background_mode.name.lower()}_background_sizes.json',
             'cell_type_classification.csv',
             'pseudotime_regression.csv',
             'p_values_celltypes.csv',
             'p_values_pseudotime.csv',
         ]
+
         for file_name in output_files:
             path = os.path.join(self.output, file_name)
-            self.assertTrue(os.path.exists(path))
-            self.assertTrue(not pd.read_csv(path).empty)
+            self.assertTrue(os.path.exists(path), msg=f"{file_name} is missing")
+            if file_name.endswith('.csv'):
+                self.assertTrue(not pd.read_csv(path).empty, msg=f"{file_name} is empty")
+            elif file_name.endswith('.json'):
+                self.assertTrue(os.path.getsize(path) > 0, msg=f"{file_name} is empty")
 
         for dir in ['cell_types', 'pseudotime']:
             path = os.path.join(self.output, 'pathways', dir)
-            self.assertTrue(os.path.exists(path))
-            self.assertTrue(len(os.listdir(path)) > 0)
+            self.assertTrue(os.path.exists(path), msg=f"{dir} directory is missing")
+            self.assertTrue(len(os.listdir(path)) > 0, msg=f"{dir} directory is empty")
 
+    def test_e2e_local_run_random_mode(self):
+        self._run_e2e(BackgroundMode.RANDOM)
+
+    @patch('scripts.backgrounds.define_sizes_in_real_mode')
+    def test_e2e_local_run_real_mode(self, mock_define_sizes):
+        def side_effect(gene_sets, set_fraction, min_set_size):
+            return original_define_sizes_in_real_mode(gene_sets, set_fraction, min_set_size, repeats=2)
+        mock_define_sizes.side_effect = side_effect
+        self._run_e2e(BackgroundMode.REAL)
+          
 
 if __name__ == '__main__':
     unittest.main()

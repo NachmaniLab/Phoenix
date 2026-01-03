@@ -11,8 +11,8 @@ def to_str(value) -> str:
 
 def get_cmd(
         func: str,
+        script: str,
         args: dict[str, str],
-        script: str = 'run',
         sbatch: bool = True,
         processes: int | None = None,
         mem: str = '1G',
@@ -60,45 +60,3 @@ def execute_sbatch_cmd(cmd, title: str, processes: int | None = None) -> str:
         return job_id
     except:
         raise RuntimeError(f'Failed executing command {cmd} due to {process.stderr}')
-
-
-# TODO: estimate memory and time for each step
-
-def run_setup_cmd(args: dict, tmp: str | None = None) -> str:
-    cmd = get_cmd(
-        func='setup',
-        args=args,
-        script='run',
-        mem='5G',
-        time='0:15:0',
-        report_path=tmp,
-    )
-    return execute_sbatch_cmd(cmd, 'initial setup')
-
-
-def run_experiments_cmd(setup_job_id: str, mem: int, time: int, args: dict, tmp: str | None = None) -> str:
-    cmd = get_cmd(
-        func='run_experiments', 
-        args=args,
-        script='run',
-        processes=args['processes'],
-        mem=f'{mem}G',
-        time=f'{time}:0:0',
-        report_path=tmp,
-        previous_job_id=setup_job_id,
-    )
-    return execute_sbatch_cmd(cmd, 'experiments', args['processes'])
-
-
-def run_aggregation_cmd(exp_job_id: str, exp_processes: int | None, output: str, tmp: str, start_time: float) -> str:
-    cmd = get_cmd(
-        func='summarize',
-        args={'output': output, 'tmp': tmp, 'start_time': start_time},  # type: ignore[dict-item]
-        script='run',
-        mem='5G',  
-        time='0:45:0',
-        report_path=tmp,
-        previous_job_id=exp_job_id,
-        previous_processes=exp_processes,
-    )
-    return execute_sbatch_cmd(cmd, 'aggregation and plotting')

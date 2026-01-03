@@ -19,20 +19,6 @@ def get_full_path(path: str) -> str:
     if not os.path.exists(path):
         raise ValueError(f"Path '{path}' does not exist")
     return os.path.abspath(path)
-
-
-def get_file_size(path: str) -> str:
-    """
-    return: rounded file size in GB or MB
-    """
-    file_size_bytes = os.path.getsize(path)
-    file_size_gb = file_size_bytes / (1024 ** 3)
-    
-    if file_size_gb < 1:
-        file_size_mb = file_size_bytes / (1024 ** 2)
-        return f"{int(np.ceil(file_size_mb))}M"
-    else:
-        return f"{int(np.ceil(file_size_gb))}G"
     
 
 def make_valid_filename(filename: str) -> str:
@@ -110,10 +96,6 @@ def define_batch_size(set_len: int, processes: int) -> int:
     if not processes:
         return set_len
     return int(np.ceil(set_len / processes))
-
-
-def define_task_length(cell_types, pseudotime) -> int:
-    return len(cell_types[CELL_TYPE_COL].unique()) + pseudotime.shape[1]
 
 
 def parse_missing_args(args):
