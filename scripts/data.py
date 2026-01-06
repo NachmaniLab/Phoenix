@@ -177,15 +177,24 @@ def calculate_pseudotime_effect_size(row, masked_expression, pseudotime, percent
     genes = row['top_genes'].split('; ')
 
     pseudotime_cells = pseudotime[target].dropna().sort_values(ascending=True).index
+    if len(pseudotime_cells) == 0:
+        return 0.0
     size = int(np.ceil(len(pseudotime_cells) * percentile))
     
     orig_cells = pseudotime_cells[:size]
     orig_sum = mean_gene_expression(masked_expression.loc[orig_cells, genes]).mean()
 
     max_change, max_sum = np.nan, np.nan
-    for i in range(1, len(pseudotime_cells) - size + 1, len(pseudotime_cells) // bins):
+    last_start = len(pseudotime_cells) - size
+    if last_start <= 0:
+        return 0.0
+    step = max(1, len(pseudotime_cells) // bins)
+    for i in range(last_start, 0, -step):
         curr_cells = pseudotime_cells[i:i+size]
         curr_sum = mean_gene_expression(masked_expression.loc[curr_cells, genes]).mean()
+        if np.isnan(curr_sum):
+            continue
+        
         curr_change = abs(curr_sum - orig_sum)
         if np.isnan(max_change) or curr_change > max_change:
             max_change = curr_change
