@@ -127,7 +127,7 @@ def _plot_prediction_scores(
     }
     
     if by_freq:
-        plt.hist(bins=50 if len(np.unique(background_scores)) > 50 else None, **plot_args)
+        plt.hist(bins=50 if len(np.unique(background_scores)) > 50 else None, **plot_args)  # type: ignore[arg-type]
         plt.ylabel('Frequency')
     else:
         sns.kdeplot(fill=True, **plot_args)
@@ -441,7 +441,7 @@ def plot_experiment(
     _plot_prediction_scores(
         pathway_score=experiment['pathway_score'],
         fdr=experiment['fdr'],
-        set_size=experiment['set_size'],
+        set_size=int(experiment['set_size']),
         background_score_mean=experiment['background_score_mean'],
         background_mode=str2enum(BackgroundMode, args['background_mode']),
         cache=os.path.join(output, 'cache'),

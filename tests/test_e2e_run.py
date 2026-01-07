@@ -42,8 +42,8 @@ class E2ERunTest(Test):
     def setUp(self) -> None:
         self.test_dir = os.path.join(os.getcwd(), 'tmp_e2e_test')
         self.output = os.path.join(self.test_dir, 'output')
-        self.cache = os.path.join(self.test_dir, 'cache')
-        self.tmp = os.path.join(self.test_dir, 'tmp')
+        self.cache = os.path.join(self.output, 'cache')
+        self.tmp = os.path.join(self.output, 'tmp')
         input_dir = os.path.join(self.test_dir, 'input')
 
         for dir_path in [self.test_dir, self.output, self.cache, self.tmp, input_dir]:
