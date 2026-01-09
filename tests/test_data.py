@@ -183,7 +183,7 @@ class PreprocessingTest(Test):
             CELL_TYPE_COL: ['target1', 'target1', 'target2', 'target2', 'target3']
         }, index=['cell1', 'cell2', 'cell3', 'cell4', 'cell5'])
 
-        effect_size = results.apply(calculate_cell_type_effect_size, axis=1, masked_expression=expression, cell_types=cell_types)
+        effect_size = calculate_cell_type_effect_size(results, expression, cell_types)
 
         mean_target1 = np.mean([np.mean([1, 6]), np.mean([2, 7])])
         mean_other1 = np.mean([np.mean([3, 8]), np.mean([4, 9]), np.mean([5, 10])])
@@ -211,14 +211,7 @@ class PreprocessingTest(Test):
             'target2': [np.nan, 0.6, 0.9, 0.7, 0.8],
         }, index=['cell1', 'cell2', 'cell3', 'cell4', 'cell5'])
 
-        effect_size = results.apply(
-            calculate_pseudotime_effect_size,
-            axis=1,
-            masked_expression=expression,
-            pseudotime=pseudotime,
-            percentile=0.3,
-            bins=4  # no bins
-        )
+        effect_size = calculate_pseudotime_effect_size(results, expression, pseudotime, percentile=0.3, bins=4)
 
         mean_min1 = 6
         mean_max1 = 7

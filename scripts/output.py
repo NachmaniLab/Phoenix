@@ -6,7 +6,7 @@ import numpy as np
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
 from scripts.consts import TARGET_COL, CELL_TYPE_COL, BackgroundMode
-from scripts.utils import enum2str, make_valid_filename, convert_from_str, adjust_p_value, correct_effect_size
+from scripts.utils import enum2str, make_valid_filename, convert_from_str
 
 
 # TODO: add methods to return paths of cache, reports and batch results (if needed)

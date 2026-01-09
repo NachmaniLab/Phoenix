@@ -133,9 +133,9 @@ def calculate_pathway_scores(
     # Add effect size
     masked_expression = expression.mask(expression <= effect_size_threshold)  # not scaled
     if not classification.empty:
-        classification['effect_size'] = classification.apply(calculate_cell_type_effect_size, axis=1, masked_expression=masked_expression, cell_types=cell_types)
+        classification['effect_size'] = calculate_cell_type_effect_size(classification, masked_expression, cell_types)
     if not regression.empty:
-        regression['effect_size'] = regression.apply(calculate_pseudotime_effect_size, axis=1, masked_expression=masked_expression, pseudotime=scaled_pseudotime)
+        regression['effect_size'] = calculate_pseudotime_effect_size(regression, masked_expression, scaled_pseudotime)
 
     # Save or return results
     if batch:

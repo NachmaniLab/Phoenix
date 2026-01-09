@@ -155,51 +155,117 @@ def mean_gene_expression(gene_set_expression: pd.DataFrame) -> pd.Series:
     return gene_set_expression.mean(axis=1, skipna=True) if gene_set_expression.ndim > 1 else gene_set_expression.mean(skipna=True)
 
 
-def calculate_cell_type_effect_size(row, masked_expression, cell_types) -> float:
-    target = row[TARGET_COL]
-    if target == ALL_CELLS:
-        return np.nan
-    genes = row['top_genes'].split('; ')
-
-    curr_cells = cell_types[cell_types[CELL_TYPE_COL] == target].index
-    other_cells = cell_types[cell_types[CELL_TYPE_COL] != target].index
-
-    curr_sum = mean_gene_expression(masked_expression.loc[curr_cells, genes]).mean()
-    other_sum = mean_gene_expression(masked_expression.loc[other_cells, genes]).mean()
-
-    if np.isnan(curr_sum) or np.isnan(other_sum):
-        return 0.0
-    return curr_sum - other_sum
-
-
-def calculate_pseudotime_effect_size(row, masked_expression, pseudotime, percentile: float = 0.2, bins: int = 10) -> float:
-    target = row[TARGET_COL]
-    genes = row['top_genes'].split('; ')
-
-    pseudotime_cells = pseudotime[target].dropna().sort_values(ascending=True).index
-    if len(pseudotime_cells) == 0:
-        return 0.0
-    size = int(np.ceil(len(pseudotime_cells) * percentile))
+def calculate_cell_type_effect_size(classification: pd.DataFrame, masked_expression: pd.DataFrame, cell_types: pd.DataFrame, verbose: bool = False) -> pd.Series:
+    assert masked_expression.index.equals(cell_types.index)
     
-    orig_cells = pseudotime_cells[:size]
-    orig_sum = mean_gene_expression(masked_expression.loc[orig_cells, genes]).mean()
+    target_means = {}
+    for target in classification[TARGET_COL].unique():
+        if target == ALL_CELLS:
+            continue
+        curr_cells = cell_types[cell_types[CELL_TYPE_COL] == target].index
+        other_cells = cell_types[cell_types[CELL_TYPE_COL] != target].index
+        target_means[target] = {
+            'curr_mean': masked_expression.loc[curr_cells].mean(skipna=True),
+            'other_mean': masked_expression.loc[other_cells].mean(skipna=True)
+        }
+   
+    effect_sizes = {}  # index: effect_size
+    target_groups = classification.groupby(TARGET_COL)
+    total_processed = 0
 
-    max_change, max_sum = np.nan, np.nan
-    last_start = len(pseudotime_cells) - size
-    if last_start <= 0:
-        return 0.0
-    step = max(1, len(pseudotime_cells) // bins)
-    for i in range(last_start, 0, -step):
-        curr_cells = pseudotime_cells[i:i+size]
-        curr_sum = mean_gene_expression(masked_expression.loc[curr_cells, genes]).mean()
-        if np.isnan(curr_sum):
+    for target, group in target_groups:
+        effect_sizes_target = []
+        if target == ALL_CELLS:
+            effect_sizes_target = [np.nan] * len(group)
+            total_processed += len(group)
+        else:
+            curr_mean = target_means[target]['curr_mean']
+            other_mean = target_means[target]['other_mean']
+            for row in group.itertuples():
+                genes = row.top_genes.split('; ')                               
+                curr_sum = curr_mean[genes].mean(skipna=True)
+                other_sum = other_mean[genes].mean(skipna=True)
+                
+                if np.isnan(curr_sum) or np.isnan(other_sum):
+                    effect_sizes_target.append(0.0)
+                else:
+                    effect_sizes_target.append(curr_sum - other_sum)
+                
+                total_processed += 1
+                if verbose and (total_processed % 10000 == 0 or total_processed == len(classification)):
+                    print(f'Cell type effect size: {total_processed}/{len(classification)}', end='\r')
+            
+            del target_means[target]
+
+        effect_sizes.update(dict(zip(group.index, effect_sizes_target)))
+    
+    return pd.Series(effect_sizes)[classification.index]
+
+
+def calculate_pseudotime_effect_size(regression: pd.DataFrame, masked_expression: pd.DataFrame, pseudotime: pd.DataFrame, percentile: float = 0.2, bins: int = 10, verbose: bool = False) -> pd.Series:
+    lineage_info: dict[str, dict[str, pd.Series] | None] = {}
+    for target in regression[TARGET_COL].unique():
+        pseudotime_cells = pseudotime[target].dropna().sort_values(ascending=True).index
+        if len(pseudotime_cells) == 0:
+            lineage_info[target] = None
             continue
         
-        curr_change = abs(curr_sum - orig_sum)
-        if np.isnan(max_change) or curr_change > max_change:
-            max_change = curr_change
-            max_sum = curr_sum
+        size = int(np.ceil(len(pseudotime_cells) * percentile))
+        last_start = len(pseudotime_cells) - size
+        if last_start <= 0:
+            lineage_info[target] = None
+            continue
+        
+        step = max(1, len(pseudotime_cells) // bins)
+        
+        orig_cells = pseudotime_cells[:size]
+        bins_cells = [pseudotime_cells[i:i+size] for i in range(last_start, 0, -step)]
 
-    if np.isnan(orig_sum) or np.isnan(max_sum):
-        return 0.0
-    return max_sum - orig_sum
+        lineage_info[target] = {
+            'orig_cells': masked_expression.loc[orig_cells].mean(skipna=True),
+            'bins_cells': [masked_expression.loc[curr_cells].mean(skipna=True) for curr_cells in bins_cells]
+        }
+    
+    effect_sizes = {}
+    target_groups = regression.groupby(TARGET_COL)
+    total_processed = 0
+    
+    for target, group in target_groups:
+        if lineage_info[target] is None:
+            effect_sizes.update(dict(zip(group.index, [0.0] * len(group))))
+            total_processed += len(group)
+            continue
+        
+        orig_cells = lineage_info[target]['orig_cells']  # type: ignore
+        bins_cells = lineage_info[target]['bins_cells']  # type: ignore
+        effect_sizes_target = []
+        
+        for row in group.itertuples():
+            genes = row.top_genes.split('; ')
+            
+            orig_sum = orig_cells[genes].mean(skipna=True)
+            
+            max_change, max_sum = np.nan, np.nan
+            for curr_cells in bins_cells:
+                curr_sum = curr_cells[genes].mean(skipna=True)
+                if np.isnan(curr_sum):
+                    continue
+                
+                curr_change = abs(curr_sum - orig_sum)
+                if np.isnan(max_change) or curr_change > max_change:
+                    max_change = curr_change
+                    max_sum = curr_sum
+            
+            if np.isnan(orig_sum) or np.isnan(max_sum):
+                effect_sizes_target.append(0.0)
+            else:
+                effect_sizes_target.append(max_sum - orig_sum)
+            
+            total_processed += 1
+            if verbose and (total_processed % 10000 == 0 or total_processed == len(regression)):
+                print(f'Pseudotime effect size: {total_processed}/{len(regression)}', end='\r')
+        
+        effect_sizes.update(dict(zip(group.index, effect_sizes_target)))
+        del lineage_info[target]
+    
+    return pd.Series(effect_sizes)[regression.index]
