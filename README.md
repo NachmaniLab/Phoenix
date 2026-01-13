@@ -86,7 +86,7 @@ Customize prediction model parameters:
 Customize background distribution parameters:
 
 * `background_mode`: Strategy for constructing background score distributions used in pathway significance testing. `real` builds backgrounds from scores of real pathways, `random` builds backgrounds from randomly sampled gene sets at predefined sizes, and `auto` chooses automatically based on the size of the gene set database. Default: `auto` (recommended)
-* `repeats`: Size of background distribution. Default: `200`.
+* `repeats`: Size of background distribution. Default: `150`.
 * `distribution`: Type of background distribution: `gamma` or `normal`. Default: `gamma`.
 
 Include parameters relevant for parallelization on a high-computing cluster, which is highly recommended for large pathway databases. For larger datasets, consider adjusting memory and time resources: 

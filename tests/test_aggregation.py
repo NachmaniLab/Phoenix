@@ -63,13 +63,13 @@ class CalculatePValueTest(Test):
             calculate_p_value(
                 pathway_score=0.9, distribution='normal', set_size=10,
                 background_mode=BackgroundMode.RANDOM, cache='', mem_cache=mem_cache,
-                cell_type='TypeA', repeats=200,
+                cell_type='TypeA', repeats=150,
             )
             # Identical to previous call
             calculate_p_value(
                 pathway_score=0.9, distribution='normal', set_size=10,
                 background_mode=BackgroundMode.RANDOM, cache='', mem_cache=mem_cache,
-                cell_type='TypeA', repeats=200,
+                cell_type='TypeA', repeats=150,
             )
             self.assertEqual(len(mem_cache), 5)
 
