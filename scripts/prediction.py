@@ -1,16 +1,12 @@
 import random
-import inspect
 import warnings
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
 from sklearn.feature_selection import SelectKBest, f_classif, f_regression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import make_scorer
-from scripts.consts import ALL_CELLS, SEED, CELL_TYPE_COL, METRICS, CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS
-from scripts.utils import show_runtime
+from scripts.consts import ALL_CELLS, SEED, CELL_TYPE_COL
 
 
 def get_train_target(
@@ -36,21 +32,24 @@ def get_train_data(
         lineage: str | None = None,
         set_size: int | None = None,
         feature_selection: str | None = None,
-        selection_args: dict = {},
-        ordered_selection: bool = False,
         seed: int = SEED
     ) -> tuple[np.ndarray, pd.Series, list[str], list[float] | None]:
     """
     feature_selection: either 'ANOVA' or 'RF', supported for both classification and regression
-    ordered_selection: ignored if feature_selection is set
     """
     assert (cell_types is not None and cell_type is not None) or (scaled_pseudotime is not None and lineage is not None)
     is_regression = scaled_pseudotime is not None
 
     y = get_train_target(cell_types, scaled_pseudotime, cell_type, lineage)
-    cells = y.index
-    features = [f for f in features if f in scaled_expression.columns] if features is not None else scaled_expression.columns
-    X = scaled_expression.loc[cells, features].to_numpy()
+    if features is None:
+        features = scaled_expression.columns.tolist()
+    else:
+        cols = set(scaled_expression.columns)
+        features = [f for f in features if f in cols]
+
+    row_idx = scaled_expression.index.get_indexer(y.index)
+    col_idx = scaled_expression.columns.get_indexer(features)
+    X = scaled_expression.to_numpy(copy=False)[np.ix_(row_idx, col_idx)]
 
     set_size = min(set_size, len(features)) if set_size is not None else len(features)
 
@@ -64,84 +63,51 @@ def get_train_data(
             return selected_features.transform(X), y, selected_genes, importances
         
         if feature_selection == 'RF':
-            if 'n_estimators' not in selection_args.keys():
-                selection_args['n_estimators'] = 50
             if is_regression:
-                importances = RandomForestRegressor(random_state=seed, **selection_args).fit(X, y).feature_importances_
+                importances = RandomForestRegressor(random_state=seed, n_estimators=50).fit(X, y).feature_importances_
             else:
-                importances = RandomForestClassifier(random_state=seed, class_weight='balanced', **selection_args).fit(X, y).feature_importances_
+                importances = RandomForestClassifier(random_state=seed, class_weight='balanced', n_estimators=50).fit(X, y).feature_importances_
             selected_indices = (-importances).argsort()[:set_size]
             selected_genes = [features[i] for i in selected_indices]
             return X[:, selected_indices], y, selected_genes, importances[selected_indices].tolist()
         
         raise ValueError(f'Unsupported feature selection method {feature_selection}')
 
-    # Select first
-    if ordered_selection:
-        return X[:, :set_size], y, features[:set_size], None
-
     # Select randomly
     selected_indices = random.Random(seed).sample(list(range(X.shape[1])), set_size)
     return X[:, selected_indices], y, [features[i] for i in selected_indices], None
 
 
-@show_runtime
-def train(
-        X, y,
-        predictor,
-        predictor_args: dict,
-        metric: str,
-        cross_validation: int | None = None,
-        balanced_weights: bool = True,
-        train_size: float = 0.8,
-        bins: int = 3,
-        seed: int = SEED,
-    ) -> float:
+def train(X, y, model, score_function, cv) -> float:
+    scores = cross_val_score(model, X, y, cv=cv, scoring=score_function)
+    return float(np.median(scores))
 
-    if 'n_jobs' in inspect.signature(predictor).parameters:
-        predictor_args['n_jobs'] = -1  # all processes
-    if 'random_state' in inspect.signature(predictor).parameters:
-        predictor_args['random_state'] = seed
-    if balanced_weights and 'class_weight' in inspect.signature(predictor).parameters:
-        predictor_args['class_weight'] = 'balanced'
 
-    model = predictor(**predictor_args)
-    score_func = make_scorer(METRICS[metric], greater_is_better=True)
+def encode_labels(y: pd.Series) -> np.ndarray:
+    return y.astype("category").cat.codes.to_numpy()
 
-    if isinstance(y.iloc[0], str):
-        y = LabelEncoder().fit_transform(y)
 
-    if cross_validation:
-        score = np.median(cross_val_score(model, X, y, cv=cross_validation, scoring=score_func))
-
-    else:
-        stratify = pd.cut(y, bins=bins, labels=False) if y.dtype == float else y
-        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=stratify, train_size=train_size, random_state=seed)
-
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-
-        score = score_func(y_test, y_pred)
-
-    del model
-    return float(score)
+def create_cv(is_regression: bool, n_splits: int):
+    if is_regression:
+        return KFold(n_splits=n_splits, shuffle=False)
+    return StratifiedKFold(n_splits=n_splits, shuffle=False)
 
 
 def get_prediction_score(
         scaled_expression: pd.DataFrame,
-        predictor: str,
-        metric: str,
+        predictor,
+        predictor_args: dict,
+        score_function,
+        cv,
         seed: int,
         gene_set: list[str] | None = None,
         set_size: int | None = None,
         feature_selection: str | None = None,
-        cross_validation: int | None = None,
         cell_types: pd.DataFrame | None = None,
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
         lineage: str | None = None,
     ) -> tuple[float, list[str], list[float] | None]:
-
     X, y, selected_genes, gene_importances = get_train_data(
         scaled_expression=scaled_expression,
         features=gene_set,
@@ -153,21 +119,13 @@ def get_prediction_score(
         feature_selection=feature_selection,
         seed=seed,
     )
-
-    is_regression = scaled_pseudotime is not None
-    predictor = REGRESSORS[predictor] if is_regression else CLASSIFIERS[predictor]
-    predictor_args = REGRESSOR_ARGS[predictor] if is_regression else CLASSIFIER_ARGS[predictor]
-    
     score = train(
         X=X,
-        y=y,
-        predictor=predictor,
-        predictor_args=predictor_args,
-        metric=metric,
-        cross_validation=cross_validation,
-        seed=seed
+        y=y if scaled_pseudotime is not None else encode_labels(y),
+        model=predictor(**dict(predictor_args)),
+        score_function=score_function,
+        cv=cv
     )
-
     return score, selected_genes, gene_importances
 
 

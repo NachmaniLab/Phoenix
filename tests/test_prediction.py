@@ -1,15 +1,27 @@
 import unittest
+import time
 import pandas as pd
 import numpy as np
+from sklearn.metrics import make_scorer
 from tests.interface import Test
-from scripts.prediction import get_train_target, get_train_data, train, compare_scores, get_prediction_score
+from scripts.prediction import create_cv, get_train_target, get_train_data, train, compare_scores, get_prediction_score, encode_labels
 from scripts.step_2_pathway_scoring import get_gene_set_batch
 from scripts.utils import adjust_p_value
-from scripts.consts import CELL_TYPE_COL, ALL_CELLS, CLASSIFIERS, CLASSIFIER_ARGS, REGRESSORS, REGRESSOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
+from scripts.consts import CELL_TYPE_COL, ALL_CELLS, CLASSIFIERS, CLASSIFIER_ARGS, METRICS, REGRESSORS, REGRESSOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
+
+
+class LabelEncodingTest(Test):
+    def test_label_encoding(self):
+        string_y = pd.Series(['TypeA', 'TypeB', 'TypeA', 'TypeC', 'TypeB', 'TypeC'])
+        numeric_y = encode_labels(string_y)
+        self.assertEqual(numeric_y.tolist(), [0, 1, 0, 2, 1, 2])
+
+        boolean_y = pd.Series([True, False, True, False, True])
+        numeric_y = encode_labels(boolean_y)
+        self.assertEqual(numeric_y.tolist(), [1, 0, 1, 0, 1])
 
 
 class TrainDataTest(Test):
-
     def setUp(self):
 
         self.scaled_expression = pd.DataFrame({
@@ -33,7 +45,6 @@ class TrainDataTest(Test):
         # Test case for get_train_target function with cell_types
         cell_type = 'TypeB'
         cell_type_target = get_train_target(cell_types=self.cell_types, cell_type=cell_type)
-        self.assertTrue(cell_type_target.dtype == bool)
         self.assertEqual(cell_type_target.tolist(), [c == cell_type for c in self.cell_types[CELL_TYPE_COL]])
 
         cell_type_target = get_train_target(cell_types=self.cell_types, cell_type=ALL_CELLS)
@@ -63,7 +74,7 @@ class TrainDataTest(Test):
         # Test case where using cell_types and cell_type
         cell_dim = self.scaled_expression.shape[0]
 
-        for cell_type in ['All', 'TypeA', 'TypeB']:
+        for cell_type in [ALL_CELLS, 'TypeA', 'TypeB']:
 
             set_size = 4
             X, y, selected_genes, importances = get_train_data(
@@ -132,7 +143,7 @@ class TrainDataTest(Test):
         # Test case where using cell_types and cell_type
         cell_dim = self.scaled_expression.shape[0]
 
-        for cell_type in ['All', 'TypeA', 'TypeB']:
+        for cell_type in [ALL_CELLS, 'TypeA', 'TypeB']:
 
             set_size = self.scaled_expression.shape[1] - 1
             X, y, selected_genes, importances = get_train_data(
@@ -281,8 +292,7 @@ class TrainDataTest(Test):
         self.assertEqual(len(importances), self.scaled_expression.shape[1])
 
 
-class TrainingTest(Test):
-    
+class TrainingPerformanceTest(Test):
     def setUp(self):
 
         self.scaled_expression = pd.DataFrame({
@@ -296,7 +306,83 @@ class TrainingTest(Test):
         cell_types = pd.DataFrame({
             CELL_TYPE_COL: ['TypeA', 'TypeB', 'TypeA', 'TypeB'],
         }, index=['Cell1', 'Cell2', 'Cell3', 'Cell4'])
-        self.cell_type_target = get_train_target(cell_types=cell_types, cell_type=ALL_CELLS)
+        self.cell_type_target = encode_labels(get_train_target(cell_types=cell_types, cell_type=ALL_CELLS))
+
+        scaled_pseudotime = pd.DataFrame({
+            1: [0.1, 0.2, 0.3, 0.4],
+            2: [0.6, 0.3, 0.9, 0.1],
+        }, index=['Cell1', 'Cell2', 'Cell3', 'Cell4'])
+        self.pseudotime_target = get_train_target(scaled_pseudotime=scaled_pseudotime, lineage=1)
+        self.cross_validation = 2
+
+        self.run_times = 10
+
+    def test_classification_training_performance(self):
+        X = np.array(self.scaled_expression[['Gene2', 'Gene5']])
+        predictor = CLASSIFIERS['RF']
+        predictor_args = CLASSIFIER_ARGS[predictor]
+        model = predictor(**predictor_args)
+        score_function = make_scorer(METRICS['f1_weighted_icf'], greater_is_better=True)
+        cv = create_cv(is_regression=False, n_splits=self.cross_validation)
+        
+        durations = []
+        for _ in range(self.run_times):
+            start = time.time()
+            train(
+                X=X,
+                y=self.cell_type_target,
+                model=model,
+                score_function=score_function,
+                cv=cv
+            )
+            end = time.time()
+            duration = end - start
+            durations.append(duration)
+        
+        mean_duration = sum(durations) / len(durations)
+        self.assertLessEqual(mean_duration, 0.2)
+
+    def test_regression_training_performance(self):
+        X = np.array(self.scaled_expression[['Gene1']])
+        predictor = REGRESSORS['RF']
+        predictor_args = REGRESSOR_ARGS[predictor]
+        model = predictor(**predictor_args)
+        score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)
+        cv = create_cv(is_regression=True, n_splits=self.cross_validation)
+
+        durations = []
+        for _ in range(self.run_times):
+            start = time.time()
+            train(
+                X=X,
+                y=self.pseudotime_target,
+                model=model,
+                score_function=score_function,
+                cv=cv
+            )
+            end = time.time()
+            duration = end - start
+            durations.append(duration)
+
+        mean_duration = sum(durations) / len(durations)
+        self.assertLessEqual(mean_duration, 0.2)
+
+
+class TrainingTest(Test):
+    def setUp(self):
+
+        self.scaled_expression = pd.DataFrame({
+            'Gene1': [1.0, 1.3, 1.5, 1.7],  # similar across cell types
+            'Gene2': [10, 1, 10, 1],  # very different across cell types
+            'Gene3': [3, 3, 3, 5],  # a little different across cell types
+            'Gene4': [4, 4, 4, 4],  # identical across cell types
+            'Gene5': [10, 1, 10, 1],  # very different across cell types
+        }, index=['Cell1', 'Cell2', 'Cell3', 'Cell4'])
+
+        cell_types = pd.DataFrame({
+            CELL_TYPE_COL: ['TypeA', 'TypeB', 'TypeA', 'TypeB'],
+        }, index=['Cell1', 'Cell2', 'Cell3', 'Cell4'])
+        self.cell_type_target = encode_labels(get_train_target(cell_types=cell_types, cell_type=ALL_CELLS))
 
         scaled_pseudotime = pd.DataFrame({
             1: [0.1, 0.2, 0.3, 0.4],
@@ -308,6 +394,7 @@ class TrainingTest(Test):
         self.cross_validation = 2
     
     def test_classification_training(self):
+        cv = create_cv(is_regression=False, n_splits=self.cross_validation)
 
         good_features = np.array(self.scaled_expression[['Gene2', 'Gene5']])
         middle_features = np.array(self.scaled_expression[['Gene2', 'Gene1']])
@@ -318,16 +405,19 @@ class TrainingTest(Test):
 
                 predictor = CLASSIFIERS[classifier]
                 predictor_args = CLASSIFIER_ARGS[predictor]
+                model = predictor(**predictor_args)
+                score_function = make_scorer(METRICS[metric], greater_is_better=True)
                 
-                good_score = train(good_features, self.cell_type_target, predictor, predictor_args, metric, self.cross_validation)
-                middle_score = train(middle_features, self.cell_type_target, predictor, predictor_args, metric, self.cross_validation)
-                bad_score = train(bad_features, self.cell_type_target, predictor, predictor_args, metric, self.cross_validation)
+                good_score = train(good_features, self.cell_type_target, model, score_function, cv)
+                middle_score = train(middle_features, self.cell_type_target, model, score_function, cv)
+                bad_score = train(bad_features, self.cell_type_target, model, score_function, cv)
 
                 self.assertEqual(good_score, 1)
                 self.assertGreaterEqual(good_score, middle_score)
                 self.assertGreaterEqual(middle_score, bad_score)
 
     def test_regression_training(self):
+        cv = create_cv(is_regression=True, n_splits=self.cross_validation)
 
         # Lineage 1
         good_features = np.array(self.scaled_expression[['Gene1']])
@@ -339,10 +429,12 @@ class TrainingTest(Test):
 
                 predictor = REGRESSORS[classifier]
                 predictor_args = REGRESSOR_ARGS[predictor]
-                
-                good_score = train(good_features, self.pseudotime1_target, predictor, predictor_args, metric, self.cross_validation)
-                good_score2 = train(good_features2, self.pseudotime1_target, predictor, predictor_args, metric, self.cross_validation)
-                bad_score = train(bad_features, self.pseudotime1_target, predictor, predictor_args, metric, self.cross_validation)
+                model = predictor(**predictor_args)
+                score_function = make_scorer(METRICS[metric], greater_is_better=True)
+                                
+                good_score = train(good_features, self.pseudotime1_target, model, score_function, cv)
+                good_score2 = train(good_features2, self.pseudotime1_target, model, score_function, cv)
+                bad_score = train(bad_features, self.pseudotime1_target, model, score_function, cv)
 
                 self.assertGreaterEqual(good_score, bad_score)
                 self.assertGreaterEqual(good_score2, bad_score)
@@ -357,17 +449,18 @@ class TrainingTest(Test):
 
                 predictor = REGRESSORS[classifier]
                 predictor_args = REGRESSOR_ARGS[predictor]
+                model = predictor(**predictor_args)
+                score_function = make_scorer(METRICS[metric], greater_is_better=True)
                 
-                good_score = train(good_features, self.pseudotime2_target, predictor, predictor_args, metric, self.cross_validation)
-                good_score2 = train(good_features2, self.pseudotime2_target, predictor, predictor_args, metric, self.cross_validation)
-                bad_score = train(bad_features, self.pseudotime2_target, predictor, predictor_args, metric, self.cross_validation)
+                good_score = train(good_features, self.pseudotime2_target, model, score_function, cv)
+                good_score2 = train(good_features2, self.pseudotime2_target, model, score_function, cv)
+                bad_score = train(bad_features, self.pseudotime2_target, model, score_function, cv)
 
                 self.assertGreaterEqual(good_score, bad_score)
                 self.assertGreaterEqual(good_score2, bad_score)
 
 
 class ScoreComparisonTest(Test):
-
     def setUp(self):
         self.pos_background_scores = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
         self.neg_background_scores = [-i for i in self.pos_background_scores]
@@ -429,12 +522,14 @@ class PredictionScoreTest(Test):
         return background_scores
 
     def test_classification_significance(self):
+        predictor = CLASSIFIERS['RF']
         base_args = {
             'scaled_expression': self.scaled_expression,
-            'predictor': 'RF',
+            'predictor': predictor,
+            'predictor_args': CLASSIFIER_ARGS[predictor],
             'set_size': 1,
-            'metric': CLASSIFICATION_METRIC,
-            'cross_validation': self.cross_validation,
+            'score_function': make_scorer(METRICS[CLASSIFICATION_METRIC], greater_is_better=True),
+            'cv': create_cv(is_regression=False, n_splits=self.cross_validation),
             'cell_types': self.cell_types,
             'cell_type': ALL_CELLS,
         }
@@ -455,12 +550,14 @@ class PredictionScoreTest(Test):
         self.assertGreaterEqual(p_value, THRESHOLD)
 
     def test_regression_significance(self):
+        predictor = REGRESSORS['RF']
         base_args = {
             'scaled_expression': self.scaled_expression,
-            'predictor': 'RF',
+            'predictor': predictor,
+            'predictor_args': REGRESSOR_ARGS[predictor],
             'set_size': 1,
-            'metric': REGRESSION_METRIC,
-            'cross_validation': self.cross_validation,
+            'score_function': make_scorer(METRICS[REGRESSION_METRIC], greater_is_better=True),
+            'cv': create_cv(is_regression=True, n_splits=self.cross_validation),
             'scaled_pseudotime': self.scaled_pseudotime,
             'lineage': 1,
         }
@@ -482,7 +579,6 @@ class PredictionScoreTest(Test):
   
 
 class GetBatchTest(Test):
-
     def setUp(self) -> None:
         self.gene_sets = {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']}
                     
@@ -493,7 +589,6 @@ class GetBatchTest(Test):
         self.assertEqual(get_gene_set_batch(self.gene_sets, batch=3, batch_size=2), {'set5': ['gene5'], 'set6': ['gene6']})
         self.assertEqual(get_gene_set_batch(self.gene_sets, batch=1, batch_size=4), {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4']})
 
-      
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,6 @@
 import os, requests, datetime, warnings  # type: ignore[import-untyped]
 import gseapy as gp
 from bioservices.kegg import KEGG
-from scripts.consts import SIZES
 from scripts.utils import make_valid_term
 from scripts.output import read_gene_sets, save_gene_sets
 
