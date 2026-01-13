@@ -142,7 +142,7 @@ def read_results(title: str, output_path: str, index_col: int | None = None, rai
 
 def get_preprocessed_data(data: pd.DataFrame | str, output_path: str) -> pd.DataFrame:
     if isinstance(data, str):
-        data = read_results(data, output_path, index_col=0, raise_err=True)
+        data = read_results(data, output_path, index_col=0)
     return data
 
 
