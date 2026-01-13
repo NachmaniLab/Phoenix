@@ -1,8 +1,9 @@
 import os
 import pandas as pd
-from scripts.consts import TARGET_COL, BackgroundMode
+from sklearn.metrics import make_scorer
+from scripts.consts import CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS, METRICS, TARGET_COL, BackgroundMode
 from scripts.data import get_cell_types, get_lineages, scale_expression, scale_pseudotime
-from scripts.prediction import get_prediction_score
+from scripts.prediction import create_cv, get_prediction_score
 from scripts.utils import define_background, define_batch_size, remove_outliers
 from scripts.output import aggregate_batch_results, load_sizes, get_preprocessed_data, save_background_scores
 
@@ -72,6 +73,18 @@ def calculate_background_scores_in_random_mode(
     all_cell_types = get_cell_types(cell_types)
     all_lineages = get_lineages(scaled_pseudotime)
 
+    classification_score_function = make_scorer(METRICS[classification_metric], greater_is_better=True)
+    regression_score_function = make_scorer(METRICS[regression_metric], greater_is_better=True)
+
+    classification_predictor = CLASSIFIERS[classifier]
+    regression_predictor = REGRESSORS[regressor]
+
+    classifier_args = CLASSIFIER_ARGS[classification_predictor]
+    regressor_args = REGRESSOR_ARGS[regression_predictor]
+
+    classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
+    regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
+
     batch_size = define_batch_size(len(sizes) * (len(all_cell_types) + len(all_lineages)), processes)
     target_size_pairs = _get_target_size_pair_batch(sizes, all_cell_types + all_lineages, batch, batch_size)
 
@@ -82,10 +95,11 @@ def calculate_background_scores_in_random_mode(
             background_scores.append(get_prediction_score(
                 seed=i,
                 scaled_expression=scaled_expression,
-                cross_validation=cross_validation,
+                cv=classification_cv if is_classification else regression_cv,
                 set_size=size,
-                predictor=classifier if is_classification else regressor,
-                metric=classification_metric if is_classification else regression_metric,
+                predictor=classification_predictor if is_classification else regression_predictor,
+                predictor_args=classifier_args if is_classification else regressor_args,  # type: ignore[arg-type]
+                score_function=classification_score_function if is_classification else regression_score_function,
                 cell_types=cell_types if is_classification else None,
                 scaled_pseudotime=scaled_pseudotime if not is_classification else None,
                 cell_type=target if is_classification else None,

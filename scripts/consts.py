@@ -21,6 +21,8 @@ class BackgroundMode(Enum):
 SIZES = [2, 5, 10, 15, 20, 25, 30, 40, 60, 80, 100, 150, 200]
 LEN_SIZES = len(SIZES)
 
+SEED = 3407
+
 REDUCTION_METHODS = ['pca', 'umap', 'tsne']
 
 DATABASES = ['go', 'kegg', 'msigdb']
@@ -50,23 +52,23 @@ REGRESSORS = {
 assert CLASSIFIERS.keys() == REGRESSORS.keys()
 
 CLASSIFIER_ARGS = {
-    LogisticRegression: {'max_iter': 300},
-    KNeighborsClassifier: {'n_neighbors': 10},
-    SVC: {'kernel': 'rbf'},
-    DecisionTreeClassifier: {'criterion': 'entropy', 'max_depth': 10},
-    RandomForestClassifier: {'criterion': 'entropy', 'max_depth': 20, 'n_estimators': 20},
-    LGBMClassifier: {'n_estimators': 20, 'verbose': -1},
+    LogisticRegression: {'max_iter': 300, 'n_jobs': -1, 'class_weight': 'balanced'},
+    KNeighborsClassifier: {'n_neighbors': 10, 'n_jobs': -1},
+    SVC: {'kernel': 'rbf', 'class_weight': 'balanced'},
+    DecisionTreeClassifier: {'criterion': 'entropy', 'max_depth': 10, 'class_weight': 'balanced', 'random_state': SEED},
+    RandomForestClassifier: {'criterion': 'entropy', 'max_depth': 20, 'n_estimators': 20, 'n_jobs': -1, 'class_weight': 'balanced', 'random_state': SEED},
+    LGBMClassifier: {'n_estimators': 20, 'verbose': -1, 'n_jobs': -1, 'class_weight': 'balanced'},
     XGBClassifier: {'n_estimators': 20},
     GradientBoostingClassifier: {'n_estimators': 20},
     MLPClassifier: {'hidden_layer_sizes': (20, 10), 'activation': 'relu', 'solver': 'adam', 'max_iter': 5000},
 }
 REGRESSOR_ARGS = {
-    LinearRegression: {'fit_intercept': True},
-    KNeighborsRegressor: {'n_neighbors': 10},
+    LinearRegression: {'fit_intercept': True, 'n_jobs': -1},
+    KNeighborsRegressor: {'n_neighbors': 10, 'n_jobs': -1},
     SVR: {'kernel': 'rbf'},
-    DecisionTreeRegressor: {'max_depth': 10},
-    RandomForestRegressor: {'criterion': 'squared_error', 'max_depth': 20, 'n_estimators': 20},
-    LGBMRegressor: {'n_estimators': 20, 'verbose': -1},
+    DecisionTreeRegressor: {'max_depth': 10, 'random_state': SEED},
+    RandomForestRegressor: {'criterion': 'squared_error', 'max_depth': 20, 'n_estimators': 20, 'n_jobs': -1, 'random_state': SEED},
+    LGBMRegressor: {'n_estimators': 20, 'verbose': -1, 'n_jobs': -1},
     XGBRegressor: {'n_estimators': 20},
     GradientBoostingRegressor: {'n_estimators': 20},
     MLPRegressor: {'hidden_layer_sizes': (20, 10), 'activation': 'relu', 'solver': 'adam', 'max_iter': 5000},
@@ -112,7 +114,6 @@ REPEATS = 200
 FEATURE_SELECTION = 'RF'
 SET_FRACTION = 0.75
 MIN_SET_SIZE = SIZES[0]
-SEED = 3407
 THRESHOLD = 0.05  # TODO: add param
 EFFECT_SIZE_THRESHOLD = 0.3  # TODO: add param
 
