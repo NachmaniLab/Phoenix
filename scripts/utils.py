@@ -60,6 +60,17 @@ def str2enum(enum_class, enum_str: str | Any):
     return enum_class[enum_str.upper()] if isinstance(enum_str, str) else enum_str
 
 
+def str2bool(val: str | bool) -> bool:
+    if isinstance(val, bool):
+        return val
+    if val.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif val.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise ValueError(f"Invalid boolean value: {val}")
+
+
 def define_task(cell_type: str | None = None, lineage: str | None = None):
     if lineage:
         return f'regression_{lineage}'

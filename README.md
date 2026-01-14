@@ -89,6 +89,11 @@ Customize background distribution parameters:
 * `repeats`: Size of background distribution. Default: `150`.
 * `distribution`: Type of background distribution: `gamma` or `normal`. Default: `gamma`.
 
+Customize effect size calculation parameters:
+
+* `effect_size_threshold`: Expression threshold for effect size calculation. Genes with expression below this value will be masked when computing effect sizes. Default: `None` (no masking).
+* `corrected_effect_size`: Whether to correct effect size values by target label for better comparability across different cell types or trajectories. Default: `True`.
+
 Include parameters relevant for parallelization on a high-computing cluster, which is highly recommended for large pathway databases. For larger datasets, consider adjusting memory and time resources: 
 
 * `processes`: Number of processes to run in parallel. Default: `0`.

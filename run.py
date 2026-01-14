@@ -31,6 +31,8 @@ def run_tool(
         repeats: int,
         seed: int,
         distribution: str,
+        effect_size_threshold: float | None,
+        corrected_effect_size: bool,
         processes: int,
         mem: int,
         time: int,
@@ -58,7 +60,7 @@ def run_tool(
             'classifier': classifier, 'regressor': regressor,
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
             'cross_validation': cross_validation, 'seed': seed, 'processes': processes,
-            'output': output, 'tmp': tmp,
+            'output': output, 'tmp': tmp, 'effect_size_threshold': effect_size_threshold,
         }
         pathway_scoring_job_id = run_pathway_scoring_cmd(pathway_scoring_args, processes, mem, time, tmp, setup_job_id)
 
@@ -75,7 +77,7 @@ def run_tool(
         aggregation_args = {
             'output': output, 'tmp': tmp, 'cache': cache,
             'background_mode': background_mode, 'distribution': distribution, 'repeats': repeats,
-            'start_time': start_time
+            'corrected_effect_size': corrected_effect_size, 'start_time': start_time
         }
         run_aggregation_cmd(aggregation_args, processes, tmp, background_scoring_job_id)
     
@@ -91,7 +93,7 @@ def run_tool(
             feature_selection, set_fraction, min_set_size,
             classifier, regressor, classification_metric, regression_metric,
             cross_validation, seed, processes,
-            output, tmp,
+            output, tmp, effect_size_threshold,
             expression, cell_types, pseudotime,
             gene_sets, sizes, verbose=verbose
         )  # type: ignore[misc]
@@ -105,7 +107,7 @@ def run_tool(
         )
         aggregate(
             output, tmp, cache,
-            background_mode, distribution, repeats,
+            background_mode, distribution, repeats, corrected_effect_size,
             classification, regression, start_time, verbose=verbose
         )
         
