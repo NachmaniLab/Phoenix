@@ -117,6 +117,8 @@ class E2ERunTest(Test):
             'cross_validation': 2,
             'background_mode': background_mode,
             'repeats': 2,
+            'effect_size_threshold': None,
+            'corrected_effect_size': True,
             'seed': SEED,
             'distribution': DISTRIBUTIONS[0],
             'processes': processes,

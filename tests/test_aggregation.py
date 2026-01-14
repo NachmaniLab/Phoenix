@@ -110,6 +110,7 @@ class EvaluateAndCorrectResultTest(Test):
             background_mode=BackgroundMode.REAL,
             distribution='normal',
             output='', tmp='', cache='', repeats=100,
+            corrected_effect_size=True,
         )
         expected_cols = ['p_value', 'fdr', 'background_score_mean', 'corrected_effect_size']
         for col in expected_cols:
@@ -127,6 +128,7 @@ class EvaluateAndCorrectResultTest(Test):
                 background_mode=BackgroundMode.REAL,
                 distribution='normal',
                 output='', tmp='', cache='', repeats=100,
+                corrected_effect_size=True,
             )
             call_kwargs = mock_calc.call_args[1]
             self.assertEqual(call_kwargs['cell_type'], 'TypeA')
@@ -144,6 +146,7 @@ class EvaluateAndCorrectResultTest(Test):
                 background_mode=BackgroundMode.REAL,
                 distribution='normal',
                 output='', tmp='', cache='', repeats=100,
+                corrected_effect_size=True,
             )
             call_kwargs = mock_calc.call_args[1]
             self.assertIsNone(call_kwargs['cell_type'])
@@ -177,6 +180,7 @@ class AggregateTest(Test):
             repeats=100,
             classification=classification,
             regression=regression,
+            corrected_effect_size=True,
             verbose=False,
         )
 
