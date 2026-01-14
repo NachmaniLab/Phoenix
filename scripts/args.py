@@ -1,7 +1,7 @@
 import argparse, os
 from scripts.consts import *
 from scripts.output import create_dir, save_args
-from scripts.utils import get_full_path, parse_missing_args, str2enum
+from scripts.utils import get_full_path, parse_missing_args, str2enum, str2bool
 
 
 ### Run ###
@@ -63,6 +63,10 @@ def parse_run_args() -> argparse.Namespace:
                         help='Seed for reproducibility')
     parser.add_argument('--distribution', type=str, default=DISTRIBUTIONS[0],
                         help='Type of background distribution: ' + ', '.join(DISTRIBUTIONS))
+    parser.add_argument('--effect_size_threshold', type=float, default=EFFECT_SIZE_THRESHOLD,
+                        help='Expression threshold for effect size calculation. Genes with expression below this value will be masked. Default: None (no masking)')
+    parser.add_argument('--corrected_effect_size', type=str, default='True',
+                        help='Whether to correct effect size by target label. Default: True')
     
     # Output
     parser.add_argument('--processes', type=int, default=0,
@@ -103,6 +107,7 @@ def process_run_args(args):
     args.regression_metric = args.regression_metric.lower().replace(' ', '_')
     args.feature_selection = args.feature_selection.upper() if args.feature_selection else None
     args.distribution = args.distribution.lower()
+    args.corrected_effect_size = str2bool(args.corrected_effect_size)
     args.background_mode = str2enum(BackgroundMode, args.background_mode)
 
     create_dir(args.output)

@@ -4,7 +4,7 @@ import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
 from scripts.output import aggregate_batch_results, load_background_scores, save_csv
 from scripts.prediction import compare_scores
-from scripts.utils import convert_to_str, correct_effect_size, define_background, adjust_p_value
+from scripts.utils import correct_effect_size, define_background, adjust_p_value, str2enum
 from scripts.visualization import plot
 
 
@@ -39,6 +39,7 @@ def evaluate_and_correct_result(
         tmp: str,
         cache: str,
         repeats: int,
+        corrected_effect_size: bool
     ) -> pd.DataFrame | None:
     result = result if result is not None else aggregate_batch_results(tmp, result_type)
     if result is None:
@@ -68,7 +69,8 @@ def evaluate_and_correct_result(
     result['p_value'] = p_values
     result['background_score_mean'] = background_score_mean_list
     result['fdr'] = adjust_p_value(result['p_value'])
-    result['corrected_effect_size'] = correct_effect_size(result['effect_size'], result[TARGET_COL])
+    if corrected_effect_size:
+        result['corrected_effect_size'] = correct_effect_size(result['effect_size'], result[TARGET_COL])
 
     save_csv(result, result_type, output, keep_index=False)
     return result
@@ -78,9 +80,10 @@ def aggregate(
         output: str,
         tmp: str,
         cache: str,
-        background_mode: BackgroundMode,
+        background_mode: BackgroundMode | str,
         distribution: str,
         repeats: int,
+        corrected_effect_size: bool,
         classification: pd.DataFrame | None = None,
         regression: pd.DataFrame | None = None,
         start_time: float | None = None,
@@ -88,26 +91,29 @@ def aggregate(
     ) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
     if verbose:
         print('Aggregating and evaluating results...')
+    background_mode = str2enum(BackgroundMode, background_mode)
 
     classification = evaluate_and_correct_result(
         classification,
         result_type='cell_type_classification',
-        background_mode=background_mode,
+        background_mode=background_mode,  # type: ignore[arg-type]
         distribution=distribution,
         output=output,
         tmp=tmp,
         cache=cache,
         repeats=repeats,
+        corrected_effect_size=corrected_effect_size,
     )
     regression = evaluate_and_correct_result(
         regression,
         result_type='pseudotime_regression',
-        background_mode=background_mode,
+        background_mode=background_mode,  # type: ignore[arg-type]
         distribution=distribution,
         output=output,
         tmp=tmp,
         cache=cache,
         repeats=repeats,
+        corrected_effect_size=corrected_effect_size,
     )
 
     if verbose:

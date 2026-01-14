@@ -35,12 +35,12 @@ def calculate_pathway_scores(
         processes: int,
         output: str,
         tmp: str,
+        effect_size_threshold: float | None,
         expression: pd.DataFrame | str = 'expression', 
         cell_types: pd.DataFrame | str = 'cell_types',
         pseudotime: pd.DataFrame | str = 'pseudotime',
         gene_sets: dict[str, list[str]] | str = 'gene_sets',
         sizes: list[int] | None = None,
-        effect_size_threshold: float | None = EFFECT_SIZE_THRESHOLD,
         verbose: bool = True,
     ) -> None | tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -83,10 +83,11 @@ def calculate_pathway_scores(
         desc='Batch',
         ncols=80,
         ascii=True,
+        smoothing=0.9,
         file=sys.stdout if batch else None,
         disable=not verbose,
     ):
-        if verbose:
+        if verbose and i % 10 == 0:
             print(f'\n{logger}Pathway {i + 1}/{len(batch_gene_sets)}: {set_name}', flush=True)
             sys.stdout.flush()
 
