@@ -205,7 +205,7 @@ def _plot_expression_across_pseudotime(
     cells = expression.index.intersection(pseudotime.index)
     pseudotime = pseudotime.loc[cells]
     pseudotime = pseudotime[~pseudotime[lineage].isna()]
-    expression = expression.loc[cells]
+    expression = expression.loc[pseudotime.index]
 
     expression['pseudotime_bin'] = pd.cut(pseudotime[lineage], bins=min(bins, len(pseudotime)), labels=False)
     expression = expression.groupby('pseudotime_bin').mean()

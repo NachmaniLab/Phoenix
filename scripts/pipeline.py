@@ -52,6 +52,8 @@ def run_aggregation_cmd(args: dict, processes: int, tmp: str, pathway_scoring_jo
         script='step_4_aggregation',
         args=args,
         report_path=tmp,
+        mem='10G',
+        time='5:0:0',
         previous_job_id=pathway_scoring_job_id,
         previous_processes=processes,
     )
