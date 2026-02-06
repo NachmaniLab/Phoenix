@@ -61,7 +61,7 @@ class CalculatePathwayScoresTest(Test):
 
         expected_columns = [
             TARGET_COL, 'set_name', 'top_genes', 'gene_importances', 
-            'set_size', 'pathway_score', 'effect_size'
+            'set_size', 'pathway_score', 'effect_size', 'most_diff_pseudotime'
         ]
         self.assertTrue(all(col in classification.columns for col in expected_columns))
         self.assertTrue(all(col in regression.columns for col in expected_columns))

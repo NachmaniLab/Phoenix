@@ -211,26 +211,46 @@ class PreprocessingTest(Test):
             'target2': [np.nan, 0.6, 0.9, 0.7, 0.8],
         }, index=['cell1', 'cell2', 'cell3', 'cell4', 'cell5'])
 
-        effect_size = calculate_pseudotime_effect_size(results, expression, pseudotime, percentile=0.3, bins=4)
+        effect_size, _ = calculate_pseudotime_effect_size(results, expression, pseudotime, percentile=0.3, bins=4)
 
-        mean_min1 = 6
-        mean_max1 = 7
+        # target1: pseudotime values: cell1=0.1, cell2=0.2
+        # window size = ceil(2 * 0.3) = 1
+        # reference: earliest 30% = cell1 only
+        # pt_range: 0.1 to 0.2, bins at [0.125, 0.15, 0.175, 0.2]
+        # For all bins, closest cell is cell1 or cell2 (distance 0.025, 0.05, 0.075, 0.1 or 0, 0.025, 0.05, 0.075)
+        # All bins select cell2 (closest to all bin points)
+        mean_min1 = 6  # cell1, g2
+        mean_max1 = 7  # cell2, g2
         assert effect_size[0] == mean_max1 - mean_min1
 
-        # window size = 2
-        # target2 ordered cells: cell2 -> cell4 -> cell5 -> cell3
-
-        # first window: cell2, cell4
-        mean1 = np.mean([np.mean([12, 17, 22]), np.mean([14, 19, 24])])
-        # second window: cell4, cell5
-        mean2 = np.mean([np.mean([14, 19, 24]), np.mean([15, 20, 25])])
-        # third window: cell5, cell3
-        mean3 = np.mean([np.mean([15, 20, 25]), np.mean([13, 18, 23])])
+        # target2: pseudotime values: cell2=0.6, cell4=0.7, cell5=0.8, cell3=0.9
+        # window size = ceil(4 * 0.3) = 2
+        # reference: earliest 30% = cell2, cell4 (first 2 cells when sorted)
+        # pt_range: 0.6 to 0.9, bins at [0.675, 0.75, 0.825, 0.9]
         
-        orig_mean = mean1
-        diff2 = abs(mean2 - orig_mean)
-        diff3 = abs(mean3 - orig_mean)
-        max_mean = mean2 if diff2 >= diff3 else mean3
+        # Reference mean for genes g3, g4, g5 from cell2 and cell4:
+        orig_mean = np.mean([np.mean([12, 17, 22]), np.mean([14, 19, 24])])
+        
+        # bin 0.675: closest 2 cells are cell2 (0.075) and cell4 (0.025)
+        mean_bin1 = np.mean([np.mean([12, 17, 22]), np.mean([14, 19, 24])])
+        # bin 0.75: closest 2 cells are cell4 (0.05) and cell5 (0.05) 
+        mean_bin2 = np.mean([np.mean([14, 19, 24]), np.mean([15, 20, 25])])
+        # bin 0.825: closest 2 cells are cell5 (0.025) and cell4 (0.125) or cell3 (0.075)
+        mean_bin3 = np.mean([np.mean([15, 20, 25]), np.mean([13, 18, 23])])
+        # bin 0.9: closest 2 cells are cell3 (0.0) and cell5 (0.1)
+        mean_bin4 = np.mean([np.mean([13, 18, 23]), np.mean([15, 20, 25])])
+        
+        max_diff = max(abs(mean_bin1 - orig_mean), abs(mean_bin2 - orig_mean), 
+                      abs(mean_bin3 - orig_mean), abs(mean_bin4 - orig_mean))
+        if abs(mean_bin2 - orig_mean) == max_diff:
+            max_mean = mean_bin2
+        elif abs(mean_bin3 - orig_mean) == max_diff:
+            max_mean = mean_bin3
+        elif abs(mean_bin4 - orig_mean) == max_diff:
+            max_mean = mean_bin4
+        else:
+            max_mean = mean_bin1
+        
         assert effect_size[1] == max_mean - orig_mean
 
 

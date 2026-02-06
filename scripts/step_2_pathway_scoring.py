@@ -154,7 +154,7 @@ def calculate_pathway_scores(
     if not classification.empty:
         classification['effect_size'] = calculate_cell_type_effect_size(classification, masked_expression, cell_types)
     if not regression.empty:
-        regression['effect_size'] = calculate_pseudotime_effect_size(regression, masked_expression, scaled_pseudotime)
+        regression['effect_size'], regression['most_diff_pseudotime'] = calculate_pseudotime_effect_size(regression, masked_expression, scaled_pseudotime)
 
     # Save or return results
     if batch:
@@ -163,4 +163,3 @@ def calculate_pathway_scores(
         return None
     else:
         return classification, regression
-
