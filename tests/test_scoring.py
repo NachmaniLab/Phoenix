@@ -61,10 +61,10 @@ class CalculatePathwayScoresTest(Test):
 
         expected_columns = [
             TARGET_COL, 'set_name', 'top_genes', 'gene_importances', 
-            'set_size', 'pathway_score', 'effect_size', 'most_diff_pseudotime'
+            'set_size', 'pathway_score', 'effect_size'
         ]
         self.assertTrue(all(col in classification.columns for col in expected_columns))
-        self.assertTrue(all(col in regression.columns for col in expected_columns))
+        self.assertTrue(all(col in regression.columns for col in expected_columns + ['most_diff_pseudotime']))
 
         self.assertEqual(len(classification), len(self.gene_sets) * (len(self.cell_types[CELL_TYPE_COL].unique()) + 1))  # plus 'All'
         self.assertEqual(len(regression), len(self.gene_sets) * len(self.pseudotime.columns))
