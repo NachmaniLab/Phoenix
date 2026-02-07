@@ -221,7 +221,7 @@ def calculate_pseudotime_effect_size(regression: pd.DataFrame, masked_expression
         bins_cells = [
             np.abs(pseudotime_values - pt_value).nsmallest(size).index
             for pt_value in pt_bins
-        ]
+        ] + [pseudotime_values.index[-size:]]  # include last cells as a separate bin
 
         lineage_info[target] = {
             'orig_cells': masked_expression.loc[orig_cells].mean(skipna=True),
