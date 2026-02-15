@@ -7,7 +7,7 @@ def run_setup_cmd(args: dict, tmp: str | None = None) -> str:
         func='setup',
         script='step_1_setup',
         args=args,
-        mem='5G',
+        mem='15G',
         time='0:15:0',
         report_path=tmp,
     )
@@ -52,8 +52,8 @@ def run_aggregation_cmd(args: dict, processes: int, tmp: str, pathway_scoring_jo
         script='step_4_aggregation',
         args=args,
         report_path=tmp,
-        mem='10G',
-        time='5:0:0',
+        mem='15G',
+        time='15:0:0',
         previous_job_id=pathway_scoring_job_id,
         previous_processes=processes,
     )

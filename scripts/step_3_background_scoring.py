@@ -14,6 +14,7 @@ def calculate_background_scores_in_real_mode(
         classification: pd.DataFrame | None = None,
         regression: pd.DataFrame | None = None,
         trim_background: bool = True,
+        k_trimming: float = 0.5,
     ) -> None:
     classification = classification if classification is not None else aggregate_batch_results(tmp, 'cell_type_classification')
     regression = regression if regression is not None else aggregate_batch_results(tmp, 'pseudotime_regression')
@@ -21,14 +22,14 @@ def calculate_background_scores_in_real_mode(
     if classification is not None:
         for (size, cell_type), subset in classification.groupby(['set_size', TARGET_COL], sort=False):
             background_scores = subset['pathway_score'].to_numpy().tolist()
-            background_scores = remove_outliers(background_scores) if trim_background else background_scores
+            background_scores = remove_outliers(background_scores, k=k_trimming) if trim_background else background_scores
             background = define_background(size, background_mode=BackgroundMode.REAL, cell_type=cell_type)
             save_background_scores(background_scores, background, cache)
     
     if regression is not None:
         for (size, lineage), subset in regression.groupby(['set_size', TARGET_COL], sort=False):
             background_scores = subset['pathway_score'].to_numpy().tolist()
-            background_scores = remove_outliers(background_scores) if trim_background else background_scores
+            background_scores = remove_outliers(background_scores, k=k_trimming) if trim_background else background_scores
             background = define_background(size, background_mode=BackgroundMode.REAL, lineage=lineage)
             save_background_scores(background_scores, background, cache)
 
