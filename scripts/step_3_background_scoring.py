@@ -86,36 +86,58 @@ def calculate_background_scores_in_random_mode(
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
 
-    batch_size = define_batch_size(len(sizes) * (len(all_cell_types) + len(all_lineages)), processes)
-    target_size_pairs = _get_target_size_pair_batch(sizes, all_cell_types + all_lineages, batch, batch_size)
+    classification_batch_size = define_batch_size(len(sizes) * len(all_cell_types), processes)
+    regression_batch_size = define_batch_size(len(sizes) * len(all_lineages), processes)
 
-    for size, target in target_size_pairs:
-        is_classification = target in all_cell_types
+    cell_type_size_pairs = _get_target_size_pair_batch(sizes, all_cell_types, batch, classification_batch_size)
+    lineage_size_pairs = _get_target_size_pair_batch(sizes, all_lineages, batch, regression_batch_size)
+
+    for size, target in cell_type_size_pairs:
         background_scores = []
         for i in range(repeats):
             background_scores.append(get_prediction_score(
                 seed=i,
                 scaled_expression=scaled_expression,
-                cv=classification_cv if is_classification else regression_cv,
+                cv=classification_cv,
                 set_size=size,
-                predictor=classification_predictor if is_classification else regression_predictor,
-                predictor_args=classifier_args if is_classification else regressor_args,  # type: ignore[arg-type]
-                score_function=classification_score_function if is_classification else regression_score_function,
-                cell_types=cell_types if is_classification else None,
-                scaled_pseudotime=scaled_pseudotime if not is_classification else None,
-                cell_type=target if is_classification else None,
-                lineage=target if not is_classification else None,
+                predictor=classification_predictor,
+                predictor_args=classifier_args,  # type: ignore[arg-type]
+                score_function=classification_score_function,
+                cell_types=cell_types,
+                cell_type=target,
             )[0])
         background_scores = remove_outliers(background_scores) if trim_background else background_scores
         background = define_background(
             set_size=size,
             background_mode=BackgroundMode.RANDOM,
-            cell_type=target if is_classification else None,
-            lineage=target if not is_classification else None,
+            cell_type=target,
             repeats=repeats,
         )
         save_background_scores(background_scores, background, cache)
         
+    for size, target in lineage_size_pairs:
+        background_scores = []
+        for i in range(repeats):
+            background_scores.append(get_prediction_score(
+                seed=i,
+                scaled_expression=scaled_expression,
+                cv=regression_cv,
+                set_size=size,
+                predictor=regression_predictor,
+                predictor_args=regressor_args,  # type: ignore[arg-type]
+                score_function=regression_score_function,
+                scaled_pseudotime=scaled_pseudotime,
+                lineage=target,
+            )[0])
+        background_scores = remove_outliers(background_scores) if trim_background else background_scores
+        background = define_background(
+            set_size=size,
+            background_mode=BackgroundMode.RANDOM,
+            lineage=target,
+            repeats=repeats,
+        )
+        save_background_scores(background_scores, background, cache)
+
 
 def calculate_background_scores(
         classifier: str,

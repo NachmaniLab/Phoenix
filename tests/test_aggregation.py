@@ -101,7 +101,8 @@ class EvaluateAndCorrectResultTest(Test):
         })
 
     @patch('scripts.step_4_aggregation.save_csv')
-    def test_adds_statistical_columns(self, mock_save):
+    @patch('scripts.step_4_aggregation.load_background_scores', return_value=[0.4, 0.5, 0.6])
+    def test_adds_statistical_columns(self, mock_load, mock_save):
         """Verify p_value, fdr, background_scores, background_score_mean, corrected_effect_size are added."""
         result = self._create_result_df(['TypeA', 'TypeB'], [0.8, 0.9], [10, 10])
         output = evaluate_and_correct_result(

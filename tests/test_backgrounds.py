@@ -74,23 +74,25 @@ class TestBackgroundCacheIO(Test):
 
     def test_save_then_load_background_scores(self):
         with tempfile.TemporaryDirectory() as tmp:
-            background = 'test-background'
+            background = 'test'
             scores = [0.1, 0.2, 0.3]
             save_background_scores(scores, background, cache_path=tmp)
             loaded = load_background_scores(background, cache_path=tmp)
             self.assertEqual(loaded, scores)
 
-    def test_load_returns_empty_list_when_file_missing(self):
+    def test_load_raises_error_when_file_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
-            loaded = load_background_scores('does-not-exist', cache_path=tmp)
-            self.assertEqual(loaded, [])
+            with self.assertRaises(FileNotFoundError) as context:
+                load_background_scores('test', cache_path=tmp)
+            self.assertIn('are missing or empty in cache', str(context.exception))
 
-    def test_load_returns_empty_list_when_file_empty(self):
+    def test_load_raises_error_when_file_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
-            background = "empty-file"
+            background = 'test'
             open(os.path.join(tmp, f'{background}.yml'), "w").close()  # empty file
-            loaded = load_background_scores(background, cache_path=tmp)
-            self.assertEqual(loaded, [])
+            with self.assertRaises(FileNotFoundError) as context:
+                load_background_scores(background, cache_path=tmp)
+            self.assertIn('are missing or empty in cache', str(context.exception))
 
 
 if __name__ == '__main__':
