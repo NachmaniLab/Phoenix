@@ -101,7 +101,7 @@ def load_background_scores(background: str, cache_path: str | None = None, verbo
             print(f'Loading background {background} from cache...')
         with open(f'{cache_path}/{background}.yml', 'r') as file:
             return yaml.load(file, Loader=yaml.FullLoader)
-    return []
+    raise FileNotFoundError(f"Background scores for '{background}' not found in cache.")
 
 
 def save_background_scores(background_scores: list[float], background: str, cache_path: str | None = None, verbose: bool = False):
