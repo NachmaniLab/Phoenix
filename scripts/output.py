@@ -91,7 +91,7 @@ def load_sizes(output_path: str) -> tuple[list[int], BackgroundMode]:
             with open(path, 'r') as file:
                 sizes = json.load(file)
             return sizes, background_mode
-    raise RuntimeError('No background sizes found in output path.')
+    raise FileNotFoundError('No background sizes found in output path.')
     
 
 def load_background_scores(background: str, cache_path: str | None = None, verbose: bool = False):
@@ -101,7 +101,7 @@ def load_background_scores(background: str, cache_path: str | None = None, verbo
             print(f'Loading background {background} from cache...')
         with open(f'{cache_path}/{background}.yml', 'r') as file:
             return yaml.load(file, Loader=yaml.FullLoader)
-    raise FileNotFoundError(f"Background scores for '{background}' not found in cache.")
+    raise FileNotFoundError(f'Background scores for {background} are missing or empty in cache at {cache_path}')
 
 
 def save_background_scores(background_scores: list[float], background: str, cache_path: str | None = None, verbose: bool = False):
