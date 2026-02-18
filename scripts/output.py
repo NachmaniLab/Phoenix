@@ -1,10 +1,12 @@
 import argparse
 from enum import Enum
-import os, yaml, glob, json  # type: ignore[import-untyped]
+import os, yaml, glob, json, gzip  # type: ignore[import-untyped]
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
 import matplotlib.pyplot as plt
+from scipy.io import mmread
+from scipy.sparse import csr_matrix
 from scripts.consts import TARGET_COL, CELL_TYPE_COL, BackgroundMode
 from scripts.utils import enum2str, make_valid_filename, convert_from_str
 
@@ -63,8 +65,127 @@ def save_csv(data: list[dict] | pd.DataFrame | dd.DataFrame | None, title: str, 
         data.to_csv(os.path.join(output_path, f'{make_valid_filename(title)}.csv'), index=keep_index)
 
 
+def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
+    """
+    Read 10x Genomics MTX folder format and return a pandas DataFrame.
+    
+    Expected files in mtx_dir:
+    - matrix.mtx or matrix.mtx.gz: Matrix Market format (genes x cells)
+    - features.tsv or features.tsv.gz (or genes.tsv(.gz)): Gene names
+    - barcodes.tsv or barcodes.tsv.gz: Cell barcodes
+    
+    Returns DataFrame with genes as columns and cells as rows.
+    """
+    # Find matrix file
+    matrix_file = None
+    for fname in ['matrix.mtx.gz', 'matrix.mtx']:
+        fpath = os.path.join(mtx_dir, fname)
+        if os.path.exists(fpath):
+            matrix_file = fpath
+            break
+    
+    if matrix_file is None:
+        raise FileNotFoundError(f"No matrix.mtx or matrix.mtx.gz found in {mtx_dir}")
+    
+    # Find features file
+    features_file = None
+    for fname in ['features.tsv.gz', 'features.tsv', 'genes.tsv.gz', 'genes.tsv']:
+        fpath = os.path.join(mtx_dir, fname)
+        if os.path.exists(fpath):
+            features_file = fpath
+            break
+    
+    if features_file is None:
+        raise FileNotFoundError(f"No features.tsv or genes.tsv found in {mtx_dir}")
+    
+    # Find barcodes file
+    barcodes_file = None
+    for fname in ['barcodes.tsv.gz', 'barcodes.tsv']:
+        fpath = os.path.join(mtx_dir, fname)
+        if os.path.exists(fpath):
+            barcodes_file = fpath
+            break
+    
+    if barcodes_file is None:
+        raise FileNotFoundError(f"No barcodes.tsv or barcodes.tsv.gz found in {mtx_dir}")
+    
+    # Read matrix
+    if matrix_file.endswith('.gz'):
+        with gzip.open(matrix_file, 'rb') as f:
+            mtx = mmread(f)
+    else:
+        mtx = mmread(matrix_file)
+    
+    # Convert to CSR format for efficiency
+    mtx = csr_matrix(mtx)
+    
+    # Read features (genes)
+    if features_file.endswith('.gz'):
+        with gzip.open(features_file, 'rt') as f:
+            features_df = pd.read_csv(f, sep='\t', header=None)
+    else:
+        features_df = pd.read_csv(features_file, sep='\t', header=None)
+    
+    # Use gene_name column (column 1) if available, otherwise use first column
+    if features_df.shape[1] >= 2:
+        genes = features_df.iloc[:, 1].tolist()
+    else:
+        genes = features_df.iloc[:, 0].tolist()
+    
+    # Read barcodes
+    if barcodes_file.endswith('.gz'):
+        with gzip.open(barcodes_file, 'rt') as f:
+            barcodes = pd.read_csv(f, sep='\t', header=None).iloc[:, 0].tolist()
+    else:
+        barcodes = pd.read_csv(barcodes_file, sep='\t', header=None).iloc[:, 0].tolist()
+    
+    # Sanity check
+    assert mtx.shape[0] == len(genes), f"Matrix rows ({mtx.shape[0]}) != number of genes ({len(genes)})"
+    assert mtx.shape[1] == len(barcodes), f"Matrix columns ({mtx.shape[1]}) != number of barcodes ({len(barcodes)})"
+    
+    # Create DataFrame: transpose so cells are rows and genes are columns
+    # Using sparse DataFrame to preserve memory efficiency
+    df_sparse = pd.DataFrame.sparse.from_spmatrix(mtx.T, index=barcodes, columns=genes)
+    
+    # Convert to dense for compatibility with existing pipeline
+    return df_sparse.sparse.to_dense()
+
+
+def _read_expression(expression_path: str) -> pd.DataFrame:
+    """
+    Read expression data from either CSV file or 10x MTX directory.
+    
+    Args:
+        expression_path: Path to CSV file or 10x MTX directory
+        
+    Returns:
+        DataFrame with cells as rows and genes as columns
+    """
+    if os.path.isfile(expression_path):
+        # CSV file
+        if expression_path.endswith('.csv'):
+            return read_csv(expression_path)
+        else:
+            raise ValueError(f"File '{expression_path}' must be a CSV file")
+    elif os.path.isdir(expression_path):
+        # Check if it's a 10x MTX directory
+        has_mtx = any(
+            os.path.exists(os.path.join(expression_path, f)) 
+            for f in ['matrix.mtx', 'matrix.mtx.gz']
+        )
+        if has_mtx:
+            return _read_10x_mtx(expression_path)
+        else:
+            raise ValueError(
+                f"Directory '{expression_path}' does not contain required 10x MTX files. "
+                "Expected: matrix.mtx(.gz), features.tsv(.gz), barcodes.tsv(.gz)"
+            )
+    else:
+        raise FileNotFoundError(f"Expression path '{expression_path}' does not exist")
+
+
 def read_raw_data(expression: str, cell_types: str | None, pseudotime: str | None, reduction: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    expression = read_csv(expression)
+    expression = _read_expression(expression)
     cell_types = read_csv(cell_types).loc[expression.index] if cell_types else None
     if cell_types is not None:
         cell_types = cell_types.rename(columns={cell_types.columns[0]: CELL_TYPE_COL})

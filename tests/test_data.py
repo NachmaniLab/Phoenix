@@ -254,5 +254,125 @@ class PreprocessingTest(Test):
         assert effect_size[1] == max_mean - orig_mean
 
 
+class MTXLoaderTest(Test):
+    """Test 10x MTX folder loading functionality"""
+
+    def test_read_10x_mtx_folder(self):
+        """Test reading a 10x MTX folder with matrix, features, and barcodes"""
+        import tempfile
+        import os
+        from scipy.io import mmwrite
+        from scipy.sparse import coo_matrix
+        from scripts.output import _read_10x_mtx
+        
+        # Create a temporary directory for test data
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create test data: 3 genes x 4 cells
+            # Matrix in COO format (row, col, data)
+            row = [0, 0, 1, 2, 2]  # gene indices
+            col = [0, 2, 1, 0, 3]  # cell indices
+            data = [1.5, 2.0, 3.5, 4.0, 5.5]
+            
+            matrix = coo_matrix((data, (row, col)), shape=(3, 4))
+            
+            # Write matrix.mtx
+            matrix_path = os.path.join(tmpdir, 'matrix.mtx')
+            mmwrite(matrix_path, matrix)
+            
+            # Write features.tsv (3 columns: gene_id, gene_name, feature_type)
+            features_path = os.path.join(tmpdir, 'features.tsv')
+            with open(features_path, 'w') as f:
+                f.write('ENSG001\tGENE1\tGene Expression\n')
+                f.write('ENSG002\tGENE2\tGene Expression\n')
+                f.write('ENSG003\tGENE3\tGene Expression\n')
+            
+            # Write barcodes.tsv
+            barcodes_path = os.path.join(tmpdir, 'barcodes.tsv')
+            with open(barcodes_path, 'w') as f:
+                f.write('AAACCTGAGAAACCAT-1\n')
+                f.write('AAACCTGAGAAACCGC-1\n')
+                f.write('AAACCTGAGAAACCTA-1\n')
+                f.write('AAACCTGAGAAACGAG-1\n')
+            
+            # Load the data
+            df = _read_10x_mtx(tmpdir)
+            
+            # Assertions
+            assert isinstance(df, pd.DataFrame), "Result should be a pandas DataFrame"
+            assert df.shape == (4, 3), f"Expected shape (4, 3), got {df.shape}"
+            
+            # Check gene names (columns)
+            expected_genes = ['GENE1', 'GENE2', 'GENE3']
+            assert list(df.columns) == expected_genes, f"Expected columns {expected_genes}, got {list(df.columns)}"
+            
+            # Check barcode names (rows)
+            expected_barcodes = [
+                'AAACCTGAGAAACCAT-1',
+                'AAACCTGAGAAACCGC-1',
+                'AAACCTGAGAAACCTA-1',
+                'AAACCTGAGAAACGAG-1'
+            ]
+            assert list(df.index) == expected_barcodes, f"Expected index {expected_barcodes}, got {list(df.index)}"
+            
+            # Check specific values (matrix is transposed: cells x genes)
+            assert df.loc['AAACCTGAGAAACCAT-1', 'GENE1'] == 1.5
+            assert df.loc['AAACCTGAGAAACCTA-1', 'GENE1'] == 2.0
+            assert df.loc['AAACCTGAGAAACCGC-1', 'GENE2'] == 3.5
+            assert df.loc['AAACCTGAGAAACCAT-1', 'GENE3'] == 4.0
+            assert df.loc['AAACCTGAGAAACGAG-1', 'GENE3'] == 5.5
+            
+            # Check zeros
+            assert df.loc['AAACCTGAGAAACCGC-1', 'GENE1'] == 0.0
+            assert df.loc['AAACCTGAGAAACCAT-1', 'GENE2'] == 0.0
+
+    def test_read_10x_mtx_folder_gzipped(self):
+        """Test reading a 10x MTX folder with gzipped files"""
+        import tempfile
+        import os
+        import gzip
+        from scipy.io import mmwrite
+        from scipy.sparse import coo_matrix
+        from scripts.output import _read_10x_mtx
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create test data: 2 genes x 3 cells
+            row = [0, 1, 1]
+            col = [0, 1, 2]
+            data = [1.0, 2.0, 3.0]
+            
+            matrix = coo_matrix((data, (row, col)), shape=(2, 3))
+            
+            # Write gzipped matrix.mtx.gz
+            matrix_path = os.path.join(tmpdir, 'matrix.mtx')
+            mmwrite(matrix_path, matrix)
+            with open(matrix_path, 'rb') as f_in:
+                with gzip.open(matrix_path + '.gz', 'wb') as f_out:
+                    f_out.write(f_in.read())
+            os.remove(matrix_path)  # Remove uncompressed version
+            
+            # Write gzipped features.tsv.gz
+            features_path = os.path.join(tmpdir, 'features.tsv.gz')
+            with gzip.open(features_path, 'wt') as f:
+                f.write('ENSG001\tGENEA\tGene Expression\n')
+                f.write('ENSG002\tGENEB\tGene Expression\n')
+            
+            # Write gzipped barcodes.tsv.gz
+            barcodes_path = os.path.join(tmpdir, 'barcodes.tsv.gz')
+            with gzip.open(barcodes_path, 'wt') as f:
+                f.write('BARCODE1-1\n')
+                f.write('BARCODE2-1\n')
+                f.write('BARCODE3-1\n')
+            
+            # Load the data
+            df = _read_10x_mtx(tmpdir)
+            
+            # Assertions
+            assert df.shape == (3, 2), f"Expected shape (3, 2), got {df.shape}"
+            assert list(df.columns) == ['GENEA', 'GENEB']
+            assert df.loc['BARCODE1-1', 'GENEA'] == 1.0
+            assert df.loc['BARCODE2-1', 'GENEB'] == 2.0
+            assert df.loc['BARCODE3-1', 'GENEB'] == 3.0
+
+
 if __name__ == '__main__':
     unittest.main()
