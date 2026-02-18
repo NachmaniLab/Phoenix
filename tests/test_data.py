@@ -366,6 +366,39 @@ class MTXLoaderTest(Test):
             assert df.loc['BARCODE2-1', 'GENEB'] == 2.0
             assert df.loc['BARCODE3-1', 'GENEB'] == 3.0
 
+    def test_read_10x_mtx_folder_dimension_mismatch(self):
+        """Test that ValueError is raised when matrix dimensions don't match metadata"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create matrix: 2 genes x 3 cells
+            row = [0, 1]
+            col = [0, 1]
+            data = [1.0, 2.0]
+            matrix = coo_matrix((data, (row, col)), shape=(2, 3))
+            
+            matrix_path = os.path.join(tmpdir, 'matrix.mtx')
+            mmwrite(matrix_path, matrix)
+            
+            # Write features.tsv with WRONG number of genes (3 instead of 2)
+            features_path = os.path.join(tmpdir, 'features.tsv')
+            with open(features_path, 'w') as f:
+                f.write('ENSG001\tGENEA\tGene Expression\n')
+                f.write('ENSG002\tGENEB\tGene Expression\n')
+                f.write('ENSG003\tGENEC\tGene Expression\n')  # Extra gene
+            
+            # Write barcodes.tsv
+            barcodes_path = os.path.join(tmpdir, 'barcodes.tsv')
+            with open(barcodes_path, 'w') as f:
+                f.write('BARCODE1-1\n')
+                f.write('BARCODE2-1\n')
+                f.write('BARCODE3-1\n')
+            
+            # Should raise ValueError
+            with self.assertRaises(ValueError) as context:
+                _read_10x_mtx(tmpdir)
+            
+            self.assertIn("Matrix rows", str(context.exception))
+            self.assertIn("number of genes", str(context.exception))
+
 
 if __name__ == '__main__':
     unittest.main()

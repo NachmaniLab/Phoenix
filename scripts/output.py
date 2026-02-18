@@ -139,16 +139,15 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
     else:
         barcodes = pd.read_csv(barcodes_file, sep='\t', header=None).iloc[:, 0].tolist()
     
-    # Sanity check
-    assert mtx.shape[0] == len(genes), f"Matrix rows ({mtx.shape[0]}) != number of genes ({len(genes)})"
-    assert mtx.shape[1] == len(barcodes), f"Matrix columns ({mtx.shape[1]}) != number of barcodes ({len(barcodes)})"
+    # Validate dimensions
+    if mtx.shape[0] != len(genes):
+        raise ValueError(f"Matrix rows ({mtx.shape[0]}) != number of genes ({len(genes)})")
+    if mtx.shape[1] != len(barcodes):
+        raise ValueError(f"Matrix columns ({mtx.shape[1]}) != number of barcodes ({len(barcodes)})")
     
     # Create DataFrame: transpose so cells are rows and genes are columns
-    # Using sparse DataFrame to preserve memory efficiency
-    df_sparse = pd.DataFrame.sparse.from_spmatrix(mtx.T, index=barcodes, columns=genes)
-    
-    # Convert to dense for compatibility with existing pipeline
-    return df_sparse.sparse.to_dense()
+    # Convert directly to dense for compatibility with existing pipeline
+    return pd.DataFrame(mtx.T.toarray(), index=barcodes, columns=genes)
 
 
 def _read_expression(expression_path: str) -> pd.DataFrame:
