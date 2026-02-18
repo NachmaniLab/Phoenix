@@ -1,9 +1,15 @@
 import unittest
+import tempfile
+import os
+import gzip
 import pandas as pd
 import numpy as np
+from scipy.io import mmwrite
+from scipy.sparse import coo_matrix
 from tests.interface import Test
 from scripts.data import preprocess_expression, preprocess_data, reduce_dimension, scale_expression, scale_pseudotime, sum_gene_expression, mean_gene_expression, calculate_cell_type_effect_size, calculate_pseudotime_effect_size, transform_log, re_transform_log
 from scripts.consts import CELL_TYPE_COL, TARGET_COL
+from scripts.output import _read_10x_mtx
 
 
 class PreprocessingTest(Test):
@@ -259,12 +265,6 @@ class MTXLoaderTest(Test):
 
     def test_read_10x_mtx_folder(self):
         """Test reading a 10x MTX folder with matrix, features, and barcodes"""
-        import tempfile
-        import os
-        from scipy.io import mmwrite
-        from scipy.sparse import coo_matrix
-        from scripts.output import _read_10x_mtx
-        
         # Create a temporary directory for test data
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create test data: 3 genes x 4 cells
@@ -327,13 +327,6 @@ class MTXLoaderTest(Test):
 
     def test_read_10x_mtx_folder_gzipped(self):
         """Test reading a 10x MTX folder with gzipped files"""
-        import tempfile
-        import os
-        import gzip
-        from scipy.io import mmwrite
-        from scipy.sparse import coo_matrix
-        from scripts.output import _read_10x_mtx
-        
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create test data: 2 genes x 3 cells
             row = [0, 1, 1]
