@@ -399,6 +399,38 @@ class MTXLoaderTest(Test):
             self.assertIn("Matrix rows", str(context.exception))
             self.assertIn("number of genes", str(context.exception))
 
+    def test_read_10x_mtx_folder_barcode_mismatch(self):
+        """Test that ValueError is raised when number of barcodes doesn't match matrix columns"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create matrix: 2 genes x 3 cells
+            row = [0, 1]
+            col = [0, 1]
+            data = [1.0, 2.0]
+            matrix = coo_matrix((data, (row, col)), shape=(2, 3))
+            
+            matrix_path = os.path.join(tmpdir, 'matrix.mtx')
+            mmwrite(matrix_path, matrix)
+            
+            # Write features.tsv
+            features_path = os.path.join(tmpdir, 'features.tsv')
+            with open(features_path, 'w') as f:
+                f.write('ENSG001\tGENEA\tGene Expression\n')
+                f.write('ENSG002\tGENEB\tGene Expression\n')
+            
+            # Write barcodes.tsv with WRONG number of barcodes (2 instead of 3)
+            barcodes_path = os.path.join(tmpdir, 'barcodes.tsv')
+            with open(barcodes_path, 'w') as f:
+                f.write('BARCODE1-1\n')
+                f.write('BARCODE2-1\n')
+                # Missing BARCODE3-1
+            
+            # Should raise ValueError
+            with self.assertRaises(ValueError) as context:
+                _read_10x_mtx(tmpdir)
+            
+            self.assertIn("Matrix columns", str(context.exception))
+            self.assertIn("number of barcodes", str(context.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
