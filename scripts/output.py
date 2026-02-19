@@ -71,46 +71,38 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
     
     Expected files in mtx_dir:
     - matrix.mtx or matrix.mtx.gz: Matrix Market format (genes x cells)
-    - features.tsv or features.tsv.gz (or genes.tsv(.gz)): Gene names
+    - features.tsv or features.tsv.gz: Gene names
     - barcodes.tsv or barcodes.tsv.gz: Cell barcodes
     
     Returns DataFrame with genes as columns and cells as rows.
     """
-    def _find_file(filenames, error_msg):
-        for fname in filenames:
+    def _find_file(filename):
+        for fname in [filename, filename + '.gz']:
             fpath = os.path.join(mtx_dir, fname)
             if os.path.exists(fpath):
                 return fpath
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(f"No {filename}(.gz) found in {mtx_dir}")
     
     def _open_file(file_path):
         return gzip.open(file_path, 'rt') if file_path.endswith('.gz') else open(file_path, 'r')
     
-    matrix_file = _find_file(
-        ['matrix.mtx.gz', 'matrix.mtx'],
-        f"No matrix.mtx or matrix.mtx.gz found in {mtx_dir}"
-    )
-    features_file = _find_file(
-        ['features.tsv.gz', 'features.tsv', 'genes.tsv.gz', 'genes.tsv'],
-        f"No features.tsv or genes.tsv found in {mtx_dir}"
-    )
-    barcodes_file = _find_file(
-        ['barcodes.tsv.gz', 'barcodes.tsv'],
-        f"No barcodes.tsv or barcodes.tsv.gz found in {mtx_dir}"
-    )
+    matrix_file = _find_file('matrix.mtx')
+    features_file = _find_file('features.tsv')
+    barcodes_file = _find_file('barcodes.tsv')
     
     if matrix_file.endswith('.gz'):
-        with gzip.open(matrix_file, 'rb') as f:
-            mtx = mmread(f)
+        matrix_file = gzip.open(matrix_file, 'rb')
     else:
-        mtx = mmread(matrix_file)
+        matrix_file = open(matrix_file, 'rb')
+    
+    with matrix_file as f:
+        mtx = mmread(f)
     
     mtx = csr_matrix(mtx)
     
     with _open_file(features_file) as f:
         features_df = pd.read_csv(f, sep='\t', header=None)
     
-    # Use gene_name column (column 1) if available, otherwise use first column
     if features_df.shape[1] >= 2:
         genes = features_df.iloc[:, 1].tolist()
     else:
@@ -124,7 +116,6 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
     if mtx.shape[1] != len(barcodes):
         raise ValueError(f"Matrix columns ({mtx.shape[1]}) != number of barcodes ({len(barcodes)})")
     
-    # Convert directly to dense for compatibility with existing pipeline
     return pd.DataFrame(mtx.T.toarray(), index=barcodes, columns=genes)
 
 
