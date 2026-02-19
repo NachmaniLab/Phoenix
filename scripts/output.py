@@ -90,12 +90,7 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
     features_file = _find_file('features.tsv')
     barcodes_file = _find_file('barcodes.tsv')
     
-    if matrix_file.endswith('.gz'):
-        matrix_file = gzip.open(matrix_file, 'rb')
-    else:
-        matrix_file = open(matrix_file, 'rb')
-    
-    with matrix_file as f:
+    with (gzip.open(matrix_file, 'rb') if matrix_file.endswith('.gz') else open(matrix_file, 'rb')) as f:
         mtx = mmread(f)
     
     mtx = csr_matrix(mtx)
