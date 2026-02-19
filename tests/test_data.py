@@ -261,10 +261,8 @@ class PreprocessingTest(Test):
 
 
 class MTXLoaderTest(Test):
-    """Test 10x MTX folder loading functionality"""
 
     def test_read_10x_mtx_folder(self):
-        """Test reading a 10x MTX folder with matrix, features, and barcodes"""
         # Create a temporary directory for test data
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create test data: 3 genes x 4 cells
@@ -326,7 +324,6 @@ class MTXLoaderTest(Test):
             assert df.loc['AAACCTGAGAAACCAT-1', 'GENE2'] == 0.0
 
     def test_read_10x_mtx_folder_gzipped(self):
-        """Test reading a 10x MTX folder with gzipped files"""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create test data: 2 genes x 3 cells
             row = [0, 1, 1]
@@ -366,8 +363,7 @@ class MTXLoaderTest(Test):
             assert df.loc['BARCODE2-1', 'GENEB'] == 2.0
             assert df.loc['BARCODE3-1', 'GENEB'] == 3.0
 
-    def test_read_10x_mtx_folder_dimension_mismatch(self):
-        """Test that ValueError is raised when matrix dimensions don't match metadata"""
+    def test_read_10x_mtx_folder_feature_mismatch(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create matrix: 2 genes x 3 cells
             row = [0, 1]
@@ -400,7 +396,6 @@ class MTXLoaderTest(Test):
             self.assertIn("number of genes", str(context.exception))
 
     def test_read_10x_mtx_folder_barcode_mismatch(self):
-        """Test that ValueError is raised when number of barcodes doesn't match matrix columns"""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create matrix: 2 genes x 3 cells
             row = [0, 1]

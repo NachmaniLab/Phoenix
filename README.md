@@ -44,7 +44,7 @@ Provide input data:
 
 * `expression`: Path to single-cell raw expression data where rows represent cells and columns represent gene symbols. Accepts either:
   * CSV file
-  * 10x Genomics MTX directory containing `matrix.mtx` (or `matrix.mtx.gz`), `features.tsv` (or `features.tsv.gz` or `genes.tsv(.gz)`), and `barcodes.tsv` (or `barcodes.tsv.gz`)
+  * 10x Genomics MTX directory containing `matrix.mtx`, `features.tsv`, and `barcodes.tsv` (or gzipped files)
 * `reduction`: Path to dimensionality reduction coordinates where rows represent cells and columns include names of the first two components (CSV file), or a dimensionality reduction method: `pca`, `umap` or `tsne`. Default: `umap`.
 
 Provide at least one target values:
@@ -108,23 +108,12 @@ For a full list of available parameters, run:
 python run.py --help
 ```
 
-### Basic example with CSV
+### Basic example
 
 ```
 python run.py \
     --expression my_experiment/input/expression.csv \
     --reduction my_experiment/input/reduction.csv \
-    --cell_types my_experiment/input/cell_types.csv \
-    --pseudotime my_experiment/input/pseudotime.csv \
-    --custom_pathways my_experiment/input/gene_sets.csv \
-    --output my_experiment/output
-```
-
-### Basic example with 10x MTX directory
-
-```
-python run.py \
-    --expression my_experiment/input/10x_mtx_folder \
     --cell_types my_experiment/input/cell_types.csv \
     --pseudotime my_experiment/input/pseudotime.csv \
     --custom_pathways my_experiment/input/gene_sets.csv \
