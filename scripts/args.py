@@ -12,7 +12,7 @@ def parse_run_args() -> argparse.Namespace:
 
     # Input data
     parser.add_argument('--expression', type=str, required=True,
-                        help='Path to single-cell raw expression data where rows represent cells and columns represent gene symbols (CSV file)')
+                        help='Path to single-cell raw expression data where rows represent cells and columns represent gene symbols (CSV file or 10x MTX directory containing matrix.mtx, features.tsv, and barcodes.tsv)')
     parser.add_argument('--cell_types', type=str,
                         help='Path to cell-type annotations where rows represent cells and first column presents cell-types (CSV file)')
     parser.add_argument('--pseudotime', type=str,

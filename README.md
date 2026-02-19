@@ -42,7 +42,9 @@ To run the tool, execute the `run.py` script with the relevant parameters.
 
 Provide input data:
 
-* `expression`: Path to single-cell raw expression data where rows represent cells and columns represent gene symbols (CSV file).
+* `expression`: Path to single-cell raw expression data where rows represent cells and columns represent gene symbols. Accepts either:
+  * CSV file
+  * 10x Genomics MTX directory containing `matrix.mtx`, `features.tsv`, and `barcodes.tsv` (or gzipped files)
 * `reduction`: Path to dimensionality reduction coordinates where rows represent cells and columns include names of the first two components (CSV file), or a dimensionality reduction method: `pca`, `umap` or `tsne`. Default: `umap`.
 
 Provide at least one target values:
