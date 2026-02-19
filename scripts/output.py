@@ -83,6 +83,9 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
                 return fpath
         raise FileNotFoundError(error_msg)
     
+    def _open_file(file_path):
+        return gzip.open(file_path, 'rt') if file_path.endswith('.gz') else open(file_path, 'r')
+    
     matrix_file = _find_file(
         ['matrix.mtx.gz', 'matrix.mtx'],
         f"No matrix.mtx or matrix.mtx.gz found in {mtx_dir}"
@@ -104,12 +107,7 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
     
     mtx = csr_matrix(mtx)
     
-    if features_file.endswith('.gz'):
-        features_file = gzip.open(features_file, 'rt')
-    else:
-        features_file = open(features_file, 'r')
-    
-    with features_file as f:
+    with _open_file(features_file) as f:
         features_df = pd.read_csv(f, sep='\t', header=None)
     
     # Use gene_name column (column 1) if available, otherwise use first column
@@ -118,12 +116,7 @@ def _read_10x_mtx(mtx_dir: str) -> pd.DataFrame:
     else:
         genes = features_df.iloc[:, 0].tolist()
     
-    if barcodes_file.endswith('.gz'):
-        barcodes_file = gzip.open(barcodes_file, 'rt')
-    else:
-        barcodes_file = open(barcodes_file, 'r')
-    
-    with barcodes_file as f:
+    with _open_file(barcodes_file) as f:
         barcodes = pd.read_csv(f, sep='\t', header=None).iloc[:, 0].tolist()
     
     if mtx.shape[0] != len(genes):
