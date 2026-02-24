@@ -15,7 +15,7 @@ import numpy as np
 from unittest.mock import patch
 from tests.interface import Test
 from run import run_tool
-from scripts.output import read_args, save_args
+from scripts.output import read_args, save_args, read_results, save_csv
 from scripts.consts import (
     CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
@@ -23,6 +23,8 @@ from scripts.consts import (
 )
 from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
 
+
+TEST_RESULTS_DIR = os.path.join(os.getcwd(), 'tests', 'test_e2e_results')
 
 class LogArgsTest(Test):
     def test_save_then_load_args(self):
@@ -40,13 +42,12 @@ class LogArgsTest(Test):
 class E2ERunTest(Test):
 
     def setUp(self) -> None:
+        np.random.seed(42)
+
         self.test_dir = os.path.join(os.getcwd(), 'tmp_e2e_test')
-        self.output = os.path.join(self.test_dir, 'output')
-        self.cache = os.path.join(self.output, 'cache')
-        self.tmp = os.path.join(self.output, 'tmp')
         input_dir = os.path.join(self.test_dir, 'input')
 
-        for dir_path in [self.test_dir, self.output, self.cache, self.tmp, input_dir]:
+        for dir_path in [self.test_dir, input_dir, TEST_RESULTS_DIR]:
             os.makedirs(dir_path, exist_ok=True)
         
         self.expression = os.path.join(input_dir, 'expression.csv')
@@ -95,7 +96,7 @@ class E2ERunTest(Test):
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
 
-    def get_args(self, background_mode: BackgroundMode, processes: int = 0):
+    def get_args(self, background_mode: BackgroundMode, output: str, processes: int = 0):
         return {
             'expression': self.expression,
             'cell_types': self.cell_types,
@@ -125,14 +126,18 @@ class E2ERunTest(Test):
             'processes': processes,
             'mem': None,
             'time': None,
-            'output': self.output,
-            'cache': self.cache,
-            'tmp': self.tmp,
+            'output': output,
+            'cache': os.path.join(output, 'cache'),
+            'tmp': os.path.join(output, 'tmp'),
             'verbose': False,
         }
     
     def _run_e2e(self, background_mode: BackgroundMode):
-        args = self.get_args(background_mode=background_mode)
+        output = os.path.join(self.test_dir, f'output_{background_mode.name.lower()}')
+        for dir in [output, os.path.join(output, 'cache'), os.path.join(output, 'tmp')]:
+            os.makedirs(dir, exist_ok=True)
+
+        args = self.get_args(background_mode=background_mode, output=output)
         save_args(argparse.Namespace(**args), args['output'])
         run_tool(**args)
 
@@ -150,7 +155,7 @@ class E2ERunTest(Test):
         ]
 
         for file_name in output_files:
-            path = os.path.join(self.output, file_name)
+            path = os.path.join(output, file_name)
             self.assertTrue(os.path.exists(path), msg=f"{file_name} is missing")
             if file_name.endswith('.csv'):
                 self.assertTrue(not pd.read_csv(path).empty, msg=f"{file_name} is empty")
@@ -158,9 +163,23 @@ class E2ERunTest(Test):
                 self.assertTrue(os.path.getsize(path) > 0, msg=f"{file_name} is empty")
 
         for dir in ['cell_types', 'pseudotime']:
-            path = os.path.join(self.output, 'pathways', dir)
+            path = os.path.join(output, 'pathways', dir)
             self.assertTrue(os.path.exists(path), msg=f"{dir} directory is missing")
             self.assertTrue(len(os.listdir(path)) > 0, msg=f"{dir} directory is empty")
+        
+        classification = read_results('cell_type_classification', output)
+        regression = read_results('pseudotime_regression', output)
+
+        if not os.path.exists(os.path.join(TEST_RESULTS_DIR, f'classification_{background_mode.name.lower()}.csv')):
+            save_csv(classification, f'classification_{background_mode.name.lower()}', TEST_RESULTS_DIR, keep_index=False)
+        if not os.path.exists(os.path.join(TEST_RESULTS_DIR, f'regression_{background_mode.name.lower()}.csv')):
+            save_csv(regression, f'regression_{background_mode.name.lower()}', TEST_RESULTS_DIR, keep_index=False)
+
+        original_classification = read_results(f'classification_{background_mode.name.lower()}', TEST_RESULTS_DIR)
+        original_regression = read_results(f'regression_{background_mode.name.lower()}', TEST_RESULTS_DIR)
+
+        pd.testing.assert_frame_equal(classification, original_classification, atol=1e-3)  # type: ignore[union-attr]
+        pd.testing.assert_frame_equal(regression, original_regression, atol=1e-3)  # type: ignore[union-attr]
 
     def test_e2e_local_run_random_mode(self):
         self._run_e2e(BackgroundMode.RANDOM)
