@@ -5,6 +5,7 @@ warnings.simplefilter('ignore', RuntimeWarning)
 warnings.simplefilter('ignore', DeprecationWarning)
 warnings.simplefilter('ignore', PendingDeprecationWarning)
 
+import sys
 import unittest
 from scripts.utils import show_runtime
 
@@ -15,7 +16,10 @@ def test_all():
     runner = unittest.TextTestRunner()
 
     suite = loader.discover(start_dir='tests')
-    runner.run(suite)
+    result = runner.run(suite)
+
+    if not result.wasSuccessful():
+        sys.exit(1)
 
 
 if __name__ == '__main__':
