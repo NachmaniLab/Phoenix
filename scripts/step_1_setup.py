@@ -19,6 +19,7 @@ def setup(
         custom_pathways: list[str],
         organism: str,
         background_mode: BackgroundMode | str,
+        random_sizes: list[int],
         repeats: int,
         set_fraction: float,
         min_set_size: int,
@@ -34,8 +35,8 @@ def setup(
     gene_sets = get_gene_sets(pathway_database, custom_pathways, organism, expression.columns, min_set_size, output)  # type: ignore[attr-defined]
     
     background_mode = str2enum(BackgroundMode, background_mode)
-    background_mode = set_background_mode(background_mode, repeats, len(gene_sets))  # type: ignore[arg-type]
-    sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, repeats, output)
+    background_mode = set_background_mode(background_mode, len(gene_sets))  # type: ignore[arg-type]
+    sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, repeats, random_sizes, output)
 
     if verbose:
         print(f'Background mode: {background_mode.name}')

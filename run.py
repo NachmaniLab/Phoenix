@@ -28,6 +28,7 @@ def run_tool(
         regression_metric: str,
         cross_validation: int,
         background_mode: BackgroundMode,
+        random_sizes: list[int],
         repeats: int,
         seed: int,
         distribution: str,
@@ -49,7 +50,7 @@ def run_tool(
             'expression': expression, 'cell_types': cell_types, 'pseudotime': pseudotime, 'reduction': reduction,
             'preprocessed': preprocessed, 'exclude_cell_types': exclude_cell_types, 'exclude_lineages': exclude_lineages,
             'pathway_database': pathway_database, 'custom_pathways': custom_pathways, 'organism': organism,
-            'background_mode': background_mode, 'repeats': repeats, 'set_fraction': set_fraction, 'min_set_size': min_set_size,
+            'background_mode': background_mode, 'random_sizes': random_sizes, 'repeats': repeats, 'set_fraction': set_fraction, 'min_set_size': min_set_size,
             'seed': seed, 'processes': processes, 'output': output
         }
         setup_job_id = run_setup_cmd(setup_args, tmp)
@@ -86,7 +87,7 @@ def run_tool(
             expression, cell_types, pseudotime, reduction,
             preprocessed, exclude_cell_types, exclude_lineages,
             pathway_database, custom_pathways, organism,
-            background_mode, repeats, set_fraction, min_set_size,
+            background_mode, random_sizes, repeats, set_fraction, min_set_size,
             seed, processes, output, return_data=True, verbose=verbose
         )  # type: ignore[misc]
         classification, regression = calculate_pathway_scores(

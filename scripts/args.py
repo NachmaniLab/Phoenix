@@ -41,7 +41,7 @@ def parse_run_args() -> argparse.Namespace:
                         help='Feature selection method applied to each gene set: ' + ', '.join(FEATURE_SELECTION_METHODS))
     parser.add_argument('--set_fraction', type=float, default=SET_FRACTION,
                         help='Fraction of genes to select from each gene set')
-    parser.add_argument('--min_set_size', type=int, default=MIN_SET_SIZE,
+    parser.add_argument('--min_set_size', type=int, default=SIZES[0],
                         help='Minimum number of genes to select from each gene set')
 
     # Prediction model
@@ -57,6 +57,8 @@ def parse_run_args() -> argparse.Namespace:
                         help='Number of cross-validation folds')
     parser.add_argument('--background_mode', type=str, default=BackgroundMode.AUTO.name,
                         help='Background mode for p-value estimation: `real` uses real pathway scores, `random` uses scores from random gene sets, and `auto` selects automatically based on the number of gene sets')
+    parser.add_argument('--random_sizes', type=int, nargs='*', default=SIZES,
+                        help='Sizes of random gene sets used for background distribution (only used in `random` mode)')
     parser.add_argument('--repeats', type=int, default=REPEATS,
                         help='Size of background distribution')
     parser.add_argument('--seed', type=int, default=SEED,
