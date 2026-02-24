@@ -1,12 +1,13 @@
 import os
 import sys
+import time
 import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import make_scorer
 from scripts.consts import CLASSIFIER_ARGS, CLASSIFIERS, EFFECT_SIZE_THRESHOLD, METRICS, REGRESSOR_ARGS, REGRESSORS, TARGET_COL
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import convert_to_str, define_batch_size, define_set_size
+from scripts.utils import convert_to_str, define_batch_size, define_set_size, save_step_runtime
 from scripts.output import load_sizes, get_preprocessed_data, read_gene_sets, save_csv
 
 
@@ -46,6 +47,7 @@ def calculate_pathway_scores(
     """
     Calculate pathway scores for a single batch of pathways.
     """
+    step_start = time.time()
     batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or 0 for a single batch
 
     expression = get_preprocessed_data(expression, output)
@@ -155,6 +157,8 @@ def calculate_pathway_scores(
         classification['effect_size'] = calculate_cell_type_effect_size(classification, masked_expression, cell_types)
     if not regression.empty:
         regression['effect_size'], regression['most_diff_pseudotime'] = calculate_pseudotime_effect_size(regression, masked_expression, scaled_pseudotime)
+
+    save_step_runtime(tmp, 'step2', time.time() - step_start, batch)
 
     # Save or return results
     if batch:

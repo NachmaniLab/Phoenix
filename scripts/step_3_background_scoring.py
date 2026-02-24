@@ -1,10 +1,11 @@
 import os
+import time
 import pandas as pd
 from sklearn.metrics import make_scorer
 from scripts.consts import CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS, METRICS, TARGET_COL, BackgroundMode
 from scripts.data import get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import define_background, define_batch_size, remove_outliers
+from scripts.utils import define_background, define_batch_size, remove_outliers, save_step_runtime
 from scripts.output import aggregate_batch_results, load_sizes, get_preprocessed_data, save_background_scores
 
 
@@ -163,6 +164,9 @@ def calculate_background_scores(
     if sizes is None or background_mode is None:
         sizes, background_mode = load_sizes(output)
 
+    step_start = time.time()
+    batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))
+
     match background_mode:
         case BackgroundMode.REAL:
             if verbose:
@@ -193,4 +197,6 @@ def calculate_background_scores(
                 pseudotime=pseudotime,
                 trim_background=trim_background,
             )
+
+    save_step_runtime(tmp, 'step3', time.time() - step_start, batch)
 
