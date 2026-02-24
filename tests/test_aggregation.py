@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 import numpy as np
 import pandas as pd
@@ -159,7 +160,7 @@ class AggregateTest(Test):
     @patch('scripts.step_4_aggregation.load_background_scores', return_value=[0.4, 0.5, 0.6])
     @patch('scripts.step_4_aggregation.save_csv')
     @patch('scripts.step_4_aggregation.plot')
-    def test_regression(self, mock_plot, mock_save, mock_load):
+    def test_aggregate(self, mock_plot, mock_save, mock_load):
         classification = pd.DataFrame({
             TARGET_COL: ['TypeA', 'TypeB'],
             'pathway_score': [0.8, 0.9],
@@ -174,16 +175,17 @@ class AggregateTest(Test):
             'set_name': ['PathwayB', 'PathwayB'],
             'effect_size': [0.25, 0.35],
         })
-        aggregate(
-            output='', tmp='', cache='',
-            background_mode=BackgroundMode.REAL,
-            distribution='normal',
-            repeats=100,
-            classification=classification,
-            regression=regression,
-            corrected_effect_size=True,
-            verbose=False,
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            aggregate(
+                output='', tmp=tmp, cache='',
+                background_mode=BackgroundMode.REAL,
+                distribution='normal',
+                repeats=100,
+                classification=classification,
+                regression=regression,
+                corrected_effect_size=True,
+                verbose=False,
+            )
 
 
 if __name__ == '__main__':
