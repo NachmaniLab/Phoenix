@@ -9,7 +9,7 @@ from tests.interface import Test
 from scripts.step_2_pathway_scoring import calculate_pathway_scores
 from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
 from scripts.consts import (
-    CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, MIN_SET_SIZE,
+    CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, SIZES,
     CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED
 )
 from scripts.output import aggregate_batch_results
@@ -32,7 +32,7 @@ class CalculatePathwayScoresTest(Test):
             'Pathway3': [f'Gene{i}' for i in range(20, 30)],
             'Pathway4': [f'Gene{i}' for i in range(5, 55)],
         }
-        sizes = define_sizes_in_real_mode(self.gene_sets, 1.0, MIN_SET_SIZE, repeats=1)
+        sizes = define_sizes_in_real_mode(self.gene_sets, 1.0, SIZES[0], repeats=1)
         self.default_params = {
             'expression': expression,
             'cell_types': self.cell_types,
@@ -40,7 +40,7 @@ class CalculatePathwayScoresTest(Test):
             'gene_sets': self.gene_sets,
             'sizes': sizes,
             'feature_selection': FEATURE_SELECTION,
-            'min_set_size': MIN_SET_SIZE,
+            'min_set_size': SIZES[0],
             'classifier': CLASSIFIER,
             'regressor': REGRESSOR,
             'classification_metric': CLASSIFICATION_METRIC,

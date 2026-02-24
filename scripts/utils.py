@@ -98,7 +98,7 @@ def define_set_size(set_len: int, set_fraction: float, min_set_size: int, all_si
     target = max(target, min_set_size)
     target = min(target, set_len)
 
-    # largest allowed size <= target (max(x for x in SIZES if x <= set_size))
+    # largest allowed size <= target (max(x for x in all_sizes if x <= set_size))
     i = bisect_right(all_sizes, target) - 1
     return all_sizes[i] if i >= 0 else min(all_sizes[0], set_len)
 

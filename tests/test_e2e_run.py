@@ -19,7 +19,7 @@ from scripts.output import read_args, save_args
 from scripts.consts import (
     CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
-    MIN_SET_SIZE, SEED, CELL_TYPE_COL, BackgroundMode
+    SIZES, SEED, CELL_TYPE_COL, BackgroundMode
 )
 from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
 
@@ -109,7 +109,7 @@ class E2ERunTest(Test):
             'custom_pathways': [self.custom_pathways],
             'feature_selection': FEATURE_SELECTION,
             'set_fraction': SET_FRACTION,
-            'min_set_size': MIN_SET_SIZE,
+            'min_set_size': SIZES[0],
             'classifier': CLASSIFIER,
             'regressor': REGRESSOR,
             'classification_metric': CLASSIFICATION_METRIC,

@@ -1,19 +1,20 @@
 import numpy as np
-from scripts.consts import SIZES, BackgroundMode, LEN_SIZES
+from scripts.consts import SIZES, REPEATS, BackgroundMode
 from scripts.utils import define_set_size
 from scripts.output import save_sizes
 
 
-def set_background_mode(background_mode: BackgroundMode, repeats: int, gene_set_len: int) -> BackgroundMode:
+def set_background_mode(background_mode: BackgroundMode, gene_set_len: int) -> BackgroundMode:
     if background_mode == BackgroundMode.AUTO:
-        return BackgroundMode.REAL if gene_set_len >= repeats * LEN_SIZES else BackgroundMode.RANDOM
+        # By definition, we use our defined REPEATS and SIZES and not provided args
+        return BackgroundMode.REAL if gene_set_len >= REPEATS * len(SIZES) else BackgroundMode.RANDOM
     return background_mode
-        
 
-def define_sizes_in_random_mode(gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int) -> list[int]:
+
+def define_sizes_in_random_mode(gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, random_sizes: list[int]) -> list[int]:
     sizes_used: set[int] = set()
     for genes in gene_sets.values():
-        size = define_set_size(len(genes), set_fraction, min_set_size, all_sizes=SIZES)
+        size = define_set_size(len(genes), set_fraction, min_set_size, all_sizes=random_sizes)
         sizes_used.add(size)
     return sorted(sizes_used)
 
@@ -46,9 +47,9 @@ def define_sizes_in_real_mode(gene_sets: dict[str, list[str]], set_fraction: flo
     return sorted(set(sizes_used))
 
 
-def define_sizes(background_mode: BackgroundMode, gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, repeats: int, output: str) -> list[int]:
+def define_sizes(background_mode: BackgroundMode, gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, repeats: int, random_sizes: list[int], output: str) -> list[int]:
     if background_mode == BackgroundMode.RANDOM:
-        sizes_used = define_sizes_in_random_mode(gene_sets, set_fraction, min_set_size)
+        sizes_used = define_sizes_in_random_mode(gene_sets, set_fraction, min_set_size, random_sizes)
     else:
         sizes_used = define_sizes_in_real_mode(gene_sets, set_fraction, min_set_size, repeats)
     save_sizes(sizes_used, background_mode, output)
