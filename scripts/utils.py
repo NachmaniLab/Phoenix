@@ -1,4 +1,4 @@
-import re, os, time
+import re, os, time, glob
 from typing import Any
 import pandas as pd
 from functools import wraps
@@ -139,6 +139,29 @@ def correct_effect_size(effect_sizes: pd.Series, targets: pd.Series) -> pd.Serie
             continue
         corrected_effect_sizes[targets == target] -= effect_sizes[targets == target].mean()
     return corrected_effect_sizes
+
+
+def save_step_runtime(tmp: str, step_name: str, elapsed: float, batch: int = 0) -> None:
+    suffix = f'_batch{batch}' if batch else ''
+    path = os.path.join(tmp, f'runtime_{step_name}{suffix}.txt')
+    with open(path, 'w') as f:
+        f.write(str(elapsed))
+
+
+def load_total_runtime(tmp: str, step_name: str = '') -> float:
+    pattern = os.path.join(tmp, f'runtime_{step_name}*.txt')
+    total = 0.0
+    for path in glob.glob(pattern):
+        with open(path) as f:
+            total += float(f.read().strip())
+    return total
+
+
+def format_runtime(elapsed: float) -> str:
+    hours = int(elapsed // 3600)
+    minutes = int((elapsed % 3600) // 60)
+    seconds = int(elapsed % 60)
+    return f"{hours}h {minutes}m {seconds}s"
 
 
 def show_runtime(func):

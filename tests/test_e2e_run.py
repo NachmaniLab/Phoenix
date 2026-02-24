@@ -116,6 +116,7 @@ class E2ERunTest(Test):
             'regression_metric': REGRESSION_METRIC,
             'cross_validation': 2,
             'background_mode': background_mode,
+            'random_sizes': SIZES,
             'repeats': 2,
             'effect_size_threshold': None,
             'corrected_effect_size': True,
@@ -166,7 +167,7 @@ class E2ERunTest(Test):
 
     @patch('scripts.backgrounds.define_sizes_in_real_mode')
     def test_e2e_local_run_real_mode(self, mock_define_sizes):
-        def side_effect(gene_sets, set_fraction, min_set_size):
+        def side_effect(gene_sets, set_fraction, min_set_size, repeats):
             return original_define_sizes_in_real_mode(gene_sets, set_fraction, min_set_size, repeats=2)
         mock_define_sizes.side_effect = side_effect
         self._run_e2e(BackgroundMode.REAL)

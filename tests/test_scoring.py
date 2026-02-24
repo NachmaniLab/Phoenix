@@ -18,6 +18,7 @@ from scripts.output import aggregate_batch_results
 class CalculatePathwayScoresTest(Test):
 
     def setUp(self):
+        self._tmp_dir = tempfile.TemporaryDirectory()
         expression = self.generate_data(num_cells=20, num_genes=30)
         self.cell_types = pd.DataFrame({
             CELL_TYPE_COL: ['TypeA'] * 10 + ['TypeB'] * 10,
@@ -51,9 +52,12 @@ class CalculatePathwayScoresTest(Test):
             'cross_validation': 2,
             'processes': 0,
             'output': '',
-            'tmp': '',
+            'tmp': self._tmp_dir.name,
             'verbose': False,
         }
+
+    def tearDown(self):
+        self._tmp_dir.cleanup()
 
     def test_pathway_scores_happy_flow(self):
         with patch.dict(os.environ, {'SLURM_ARRAY_TASK_ID': '0'}):

@@ -4,7 +4,7 @@ import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
 from scripts.output import aggregate_batch_results, load_background_scores, save_csv
 from scripts.prediction import compare_scores
-from scripts.utils import correct_effect_size, define_background, adjust_p_value, str2enum
+from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, load_total_runtime, save_step_runtime, str2enum
 from scripts.visualization import plot
 
 
@@ -89,6 +89,7 @@ def aggregate(
         start_time: float | None = None,
         verbose: bool = True,
     ) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
+    step_start = runtime.time()
     if verbose:
         print('Aggregating and evaluating results...')
     background_mode = str2enum(BackgroundMode, background_mode)
@@ -120,11 +121,22 @@ def aggregate(
         print('Plotting results...')
     plot(output)
 
+    step_4_time = runtime.time() - step_start
+    save_step_runtime(tmp, 'step4', step_4_time)
+
     if verbose and start_time is not None:
-        elapsed = runtime.time() - start_time
-        hours = int(elapsed // 3600)
-        minutes = int((elapsed % 3600) // 60)
-        seconds = int(elapsed % 60)
-        print(f"Runtime: {hours}h {minutes}m {seconds}s")
+        wall_clock_time = runtime.time() - start_time
+        print(f"Wall-clock time: {format_runtime(wall_clock_time)}")
+
+    if verbose:
+        step_1_time = load_total_runtime(tmp, 'step1')
+        step_2_time = load_total_runtime(tmp, 'step2')
+        step_3_time = load_total_runtime(tmp, 'step3')
+
+        print(f"Total time: {format_runtime(step_1_time + step_2_time + step_3_time + step_4_time)}")
+        print(f"Total time setup step: {format_runtime(step_1_time)}")
+        print(f"Total time pathway scoring step: {format_runtime(step_2_time)}")
+        print(f"Total time background scoring step: {format_runtime(step_3_time)}")
+        print(f"Total time aggregation step: {format_runtime(step_4_time)}")
 
     return classification, regression
