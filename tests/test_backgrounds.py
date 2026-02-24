@@ -66,7 +66,7 @@ class SizeDefinitionTest(Test):
             'set2': ['gene1', 'gene2', 'gene3'],
         }
         with self.assertRaises(RuntimeError) as context:
-            define_sizes_in_real_mode(small_gene_sets, set_fraction=1.0, min_set_size=1)
+            define_sizes_in_real_mode(small_gene_sets, set_fraction=1.0, min_set_size=1, repeats=10)
         self.assertIn('Not enough gene sets', str(context.exception))
 
 

@@ -35,7 +35,7 @@ def setup(
     
     background_mode = str2enum(BackgroundMode, background_mode)
     background_mode = set_background_mode(background_mode, repeats, len(gene_sets))  # type: ignore[arg-type]
-    sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, output)
+    sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, repeats, output)
 
     if verbose:
         print(f'Background mode: {background_mode.name}')

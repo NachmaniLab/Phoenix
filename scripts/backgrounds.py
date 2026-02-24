@@ -1,5 +1,5 @@
 import numpy as np
-from scripts.consts import SIZES, BackgroundMode, LEN_SIZES, REPEATS
+from scripts.consts import SIZES, BackgroundMode, LEN_SIZES
 from scripts.utils import define_set_size
 from scripts.output import save_sizes
 
@@ -18,7 +18,7 @@ def define_sizes_in_random_mode(gene_sets: dict[str, list[str]], set_fraction: f
     return sorted(sizes_used)
 
 
-def define_sizes_in_real_mode(gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, repeats: int = REPEATS) -> list[int]:
+def define_sizes_in_real_mode(gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, repeats: int) -> list[int]:
     len_sizes = len(gene_sets) // repeats
     if len_sizes == 0:
         raise RuntimeError('Not enough gene sets for real background mode. Consider using random background mode instead.')
@@ -46,10 +46,10 @@ def define_sizes_in_real_mode(gene_sets: dict[str, list[str]], set_fraction: flo
     return sorted(set(sizes_used))
 
 
-def define_sizes(background_mode: BackgroundMode, gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, output: str) -> list[int]:
+def define_sizes(background_mode: BackgroundMode, gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, repeats: int, output: str) -> list[int]:
     if background_mode == BackgroundMode.RANDOM:
         sizes_used = define_sizes_in_random_mode(gene_sets, set_fraction, min_set_size)
     else:
-        sizes_used = define_sizes_in_real_mode(gene_sets, set_fraction, min_set_size)
+        sizes_used = define_sizes_in_real_mode(gene_sets, set_fraction, min_set_size, repeats)
     save_sizes(sizes_used, background_mode, output)
     return sizes_used
