@@ -1,13 +1,6 @@
 import numpy as np
 from enum import Enum, auto
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
-from sklearn.svm import SVC, SVR
-from sklearn.neural_network import MLPClassifier, MLPRegressor
-from lightgbm import LGBMClassifier, LGBMRegressor
-from xgboost import XGBClassifier, XGBRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, mean_absolute_error, mean_squared_error
 from scripts.metrics import weighted_metric_using_icf, compute_f1, compute_recall
 
@@ -26,52 +19,11 @@ REDUCTION_METHODS = ['pca', 'umap', 'tsne']
 
 DATABASES = ['go', 'kegg', 'msigdb']
 
-CLASSIFIERS = {
-    'Reg': LogisticRegression,
-    'KNN': KNeighborsClassifier,
-    'SVM': SVC,
-    'DTree': DecisionTreeClassifier,
-    'RF': RandomForestClassifier,
-    'LGBM': LGBMClassifier,
-    'XGB': XGBClassifier,
-    'GradBoost': GradientBoostingClassifier,
-    'MLP': MLPClassifier
-}
-REGRESSORS = {
-    'Reg': LinearRegression,
-    'KNN': KNeighborsRegressor,
-    'SVM': SVR,
-    'DTree': DecisionTreeRegressor,
-    'RF': RandomForestRegressor,
-    'LGBM': LGBMRegressor,
-    'XGB': XGBRegressor,
-    'GradBoost': GradientBoostingRegressor,
-    'MLP': MLPRegressor
-}
-assert CLASSIFIERS.keys() == REGRESSORS.keys()
+CLASSIFICATION_PREDICTOR = RandomForestClassifier
+REGRESSION_PREDICTOR = RandomForestRegressor
 
-CLASSIFIER_ARGS = {
-    LogisticRegression: {'max_iter': 300, 'n_jobs': -1, 'class_weight': 'balanced'},
-    KNeighborsClassifier: {'n_neighbors': 10, 'n_jobs': -1},
-    SVC: {'kernel': 'rbf', 'class_weight': 'balanced'},
-    DecisionTreeClassifier: {'criterion': 'entropy', 'max_depth': 10, 'class_weight': 'balanced', 'random_state': SEED},
-    RandomForestClassifier: {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 20, 'n_jobs': -1, 'class_weight': 'balanced', 'random_state': SEED},
-    LGBMClassifier: {'n_estimators': 20, 'verbose': -1, 'n_jobs': -1, 'class_weight': 'balanced'},
-    XGBClassifier: {'n_estimators': 20},
-    GradientBoostingClassifier: {'n_estimators': 20},
-    MLPClassifier: {'hidden_layer_sizes': (20, 10), 'activation': 'relu', 'solver': 'adam', 'max_iter': 5000},
-}
-REGRESSOR_ARGS = {
-    LinearRegression: {'fit_intercept': True, 'n_jobs': -1},
-    KNeighborsRegressor: {'n_neighbors': 10, 'n_jobs': -1},
-    SVR: {'kernel': 'rbf'},
-    DecisionTreeRegressor: {'max_depth': 10, 'random_state': SEED},
-    RandomForestRegressor: {'criterion': 'squared_error', 'max_depth': 10, 'n_estimators': 20, 'n_jobs': -1, 'random_state': SEED},
-    LGBMRegressor: {'n_estimators': 20, 'verbose': -1, 'n_jobs': -1},
-    XGBRegressor: {'n_estimators': 20},
-    GradientBoostingRegressor: {'n_estimators': 20},
-    MLPRegressor: {'hidden_layer_sizes': (20, 10), 'activation': 'relu', 'solver': 'adam', 'max_iter': 5000},
-}
+CLASSIFICATION_PREDICTOR_ARGS = {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 20, 'n_jobs': -1, 'class_weight': 'balanced', 'random_state': SEED}
+REGRESSION_PREDICTOR_ARGS = {'criterion': 'squared_error', 'max_depth': 10, 'n_estimators': 20, 'n_jobs': -1, 'random_state': SEED}
 
 CLASSIFICATION_METRICS = {
     'accuracy': accuracy_score,
@@ -104,8 +56,6 @@ LIST_SEP = '; '
 NUM_GENES = 5000  # TODO: add param
 REDUCTION = 'umap'
 DB = 'ALL'
-CLASSIFIER = 'RF'
-REGRESSOR = 'RF'
 CLASSIFICATION_METRIC = 'f1_weighted_icf'
 REGRESSION_METRIC = 'neg_root_mean_squared_error'
 CROSS_VALIDATION = 10

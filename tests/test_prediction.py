@@ -7,7 +7,7 @@ from tests.interface import Test
 from scripts.prediction import create_cv, get_train_target, get_train_data, train, compare_scores, get_prediction_score, encode_labels
 from scripts.step_2_pathway_scoring import get_gene_set_batch
 from scripts.utils import adjust_p_value
-from scripts.consts import CELL_TYPE_COL, ALL_CELLS, CLASSIFIERS, CLASSIFIER_ARGS, METRICS, REGRESSORS, REGRESSOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
+from scripts.consts import CELL_TYPE_COL, ALL_CELLS, CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
 
 
 class LabelEncodingTest(Test):
@@ -319,8 +319,8 @@ class TrainingPerformanceTest(Test):
 
     def test_classification_training_performance(self):
         X = np.array(self.scaled_expression[['Gene2', 'Gene5']])
-        predictor = CLASSIFIERS['RF']
-        predictor_args = CLASSIFIER_ARGS[predictor]
+        predictor = CLASSIFICATION_PREDICTOR
+        predictor_args = CLASSIFICATION_PREDICTOR_ARGS
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['f1_weighted_icf'], greater_is_better=True)
         cv = create_cv(is_regression=False, n_splits=self.cross_validation)
@@ -344,8 +344,8 @@ class TrainingPerformanceTest(Test):
 
     def test_regression_training_performance(self):
         X = np.array(self.scaled_expression[['Gene1']])
-        predictor = REGRESSORS['RF']
-        predictor_args = REGRESSOR_ARGS[predictor]
+        predictor = REGRESSION_PREDICTOR
+        predictor_args = REGRESSION_PREDICTOR_ARGS
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)
         cv = create_cv(is_regression=True, n_splits=self.cross_validation)
@@ -400,11 +400,10 @@ class TrainingTest(Test):
         middle_features = np.array(self.scaled_expression[['Gene2', 'Gene1']])
         bad_features = np.array(self.scaled_expression[['Gene4', 'Gene1']])
         
-        for classifier in ['RF', 'SVM', 'DTree']:
-            for metric in ['f1_weighted_icf', 'accuracy_balanced']:
+        for metric in ['f1_weighted_icf', 'accuracy_balanced']:
 
-                predictor = CLASSIFIERS[classifier]
-                predictor_args = CLASSIFIER_ARGS[predictor]
+                predictor = CLASSIFICATION_PREDICTOR
+                predictor_args = CLASSIFICATION_PREDICTOR_ARGS
                 model = predictor(**predictor_args)
                 score_function = make_scorer(METRICS[metric], greater_is_better=True)
                 
@@ -424,11 +423,10 @@ class TrainingTest(Test):
         good_features2 = np.array(self.scaled_expression[['Gene3']])
         bad_features = np.array(self.scaled_expression[['Gene4']])
         
-        for classifier in ['RF', 'SVM', 'LGBM']:
-            for metric in ['neg_mean_squared_error']:
+        predictor = REGRESSION_PREDICTOR
+        predictor_args = REGRESSION_PREDICTOR_ARGS
+        for metric in ['neg_mean_squared_error']:
 
-                predictor = REGRESSORS[classifier]
-                predictor_args = REGRESSOR_ARGS[predictor]
                 model = predictor(**predictor_args)
                 score_function = make_scorer(METRICS[metric], greater_is_better=True)
                                 
@@ -444,11 +442,8 @@ class TrainingTest(Test):
         good_features2 = np.array(self.scaled_expression[['Gene5']])
         bad_features = np.array(self.scaled_expression[['Gene4']])
         
-        for classifier in ['RF', 'SVM', 'LGBM']:
-            for metric in ['neg_mean_squared_error']:
+        for metric in ['neg_mean_squared_error']:
 
-                predictor = REGRESSORS[classifier]
-                predictor_args = REGRESSOR_ARGS[predictor]
                 model = predictor(**predictor_args)
                 score_function = make_scorer(METRICS[metric], greater_is_better=True)
                 
@@ -522,11 +517,11 @@ class PredictionScoreTest(Test):
         return background_scores
 
     def test_classification_significance(self):
-        predictor = CLASSIFIERS['RF']
+        predictor = CLASSIFICATION_PREDICTOR
         base_args = {
             'scaled_expression': self.scaled_expression,
             'predictor': predictor,
-            'predictor_args': CLASSIFIER_ARGS[predictor],
+            'predictor_args': CLASSIFICATION_PREDICTOR_ARGS,
             'set_size': 1,
             'score_function': make_scorer(METRICS[CLASSIFICATION_METRIC], greater_is_better=True),
             'cv': create_cv(is_regression=False, n_splits=self.cross_validation),
@@ -550,11 +545,11 @@ class PredictionScoreTest(Test):
         self.assertGreaterEqual(p_value, THRESHOLD)
 
     def test_regression_significance(self):
-        predictor = REGRESSORS['RF']
+        predictor = REGRESSION_PREDICTOR
         base_args = {
             'scaled_expression': self.scaled_expression,
             'predictor': predictor,
-            'predictor_args': REGRESSOR_ARGS[predictor],
+            'predictor_args': REGRESSION_PREDICTOR_ARGS,
             'set_size': 1,
             'score_function': make_scorer(METRICS[REGRESSION_METRIC], greater_is_better=True),
             'cv': create_cv(is_regression=True, n_splits=self.cross_validation),

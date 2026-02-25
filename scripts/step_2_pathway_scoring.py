@@ -4,7 +4,7 @@ import time
 import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import make_scorer
-from scripts.consts import CLASSIFIER_ARGS, CLASSIFIERS, EFFECT_SIZE_THRESHOLD, METRICS, REGRESSOR_ARGS, REGRESSORS, TARGET_COL
+from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, EFFECT_SIZE_THRESHOLD, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
 from scripts.utils import convert_to_str, define_batch_size, define_set_size, save_step_runtime
@@ -27,8 +27,6 @@ def calculate_pathway_scores(
         feature_selection: str,
         set_fraction: float,
         min_set_size: int,
-        classifier: str,
-        regressor: str,
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
@@ -69,12 +67,6 @@ def calculate_pathway_scores(
     classification_score_function = make_scorer(METRICS[classification_metric], greater_is_better=True)
     regression_score_function = make_scorer(METRICS[regression_metric], greater_is_better=True)
 
-    classification_predictor = CLASSIFIERS[classifier]
-    regression_predictor = REGRESSORS[regressor]
-
-    classifier_args = CLASSIFIER_ARGS[classification_predictor]
-    regressor_args = REGRESSOR_ARGS[regression_predictor]
-
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
 
@@ -99,8 +91,8 @@ def calculate_pathway_scores(
         for cell_type in all_cell_types:
             pathway_score, top_genes, gene_importances = get_prediction_score(
                 scaled_expression=scaled_expression,
-                predictor=classification_predictor,
-                predictor_args=classifier_args,  # type: ignore[arg-type]
+                predictor=CLASSIFICATION_PREDICTOR,
+                predictor_args=CLASSIFICATION_PREDICTOR_ARGS,  # type: ignore[arg-type]
                 score_function=classification_score_function,
                 seed=seed,
                 gene_set=gene_set,
@@ -124,8 +116,8 @@ def calculate_pathway_scores(
         for lineage in all_lineages:
             pathway_score, top_genes, gene_importances = get_prediction_score(
                 scaled_expression=scaled_expression,
-                predictor=regression_predictor,
-                predictor_args=regressor_args,  # type: ignore[arg-type]
+                predictor=REGRESSION_PREDICTOR,
+                predictor_args=REGRESSION_PREDICTOR_ARGS,  # type: ignore[arg-type]
                 score_function=regression_score_function,
                 seed=seed,
                 gene_set=gene_set,

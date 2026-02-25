@@ -45,10 +45,6 @@ def parse_run_args() -> argparse.Namespace:
                         help='Minimum number of genes to select from each gene set')
 
     # Prediction model
-    parser.add_argument('--classifier', type=str, default=CLASSIFIER,
-                        help='Classification model: ' + ', '.join(CLASSIFIERS.keys()))
-    parser.add_argument('--regressor', type=str, default=REGRESSOR,
-                        help='Regression model: ' + ', '.join(REGRESSORS.keys()))
     parser.add_argument('--classification_metric', type=str, default=CLASSIFICATION_METRIC,
                         help='Classification score: ' + ', '.join(CLASSIFICATION_METRICS.keys()))
     parser.add_argument('--regression_metric', type=str, default=REGRESSION_METRIC,
@@ -103,8 +99,6 @@ def process_run_args(args):
         args.pathway_database = []
     args.custom_pathways = args.custom_pathways if args.custom_pathways else []
     
-    args.classifier = args.classifier.upper()
-    args.regressor = args.regressor.upper()
     args.classification_metric = args.classification_metric.lower().replace(' ', '_')
     args.regression_metric = args.regression_metric.lower().replace(' ', '_')
     args.feature_selection = args.feature_selection.upper() if args.feature_selection else None
@@ -131,8 +125,6 @@ def validate_run_args(args):
     assert args.organism is not None or args.pathway_database is None, 'Provide `organism` for pathway annotations'
     assert args.pathway_database is not None or args.custom_pathways is not None, 'Provide at least `pathway_database` or `custom_pathways`'
     assert args.pathway_database is None or all([db in DATABASES for db in args.pathway_database])
-    assert args.classifier in CLASSIFIERS
-    assert args.regressor in REGRESSORS
     assert args.classification_metric in CLASSIFICATION_METRICS.keys()
     assert args.regression_metric in REGRESSION_METRICS.keys()
     assert not args.feature_selection or args.feature_selection in FEATURE_SELECTION_METHODS
