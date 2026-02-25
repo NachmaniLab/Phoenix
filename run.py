@@ -22,8 +22,6 @@ def run_tool(
         feature_selection: str,
         set_fraction: float,
         min_set_size: int,
-        classifier: str,
-        regressor: str,
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
@@ -58,7 +56,6 @@ def run_tool(
         # Pathway scoring
         pathway_scoring_args = {
             'feature_selection': feature_selection, 'set_fraction': set_fraction, 'min_set_size': min_set_size,
-            'classifier': classifier, 'regressor': regressor,
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
             'cross_validation': cross_validation, 'seed': seed, 'processes': processes,
             'output': output, 'tmp': tmp, 'effect_size_threshold': effect_size_threshold,
@@ -67,7 +64,6 @@ def run_tool(
 
         # Background scoring
         background_scoring_args = {
-            'classifier': classifier, 'regressor': regressor,
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
             'cross_validation': cross_validation, 'repeats': repeats, 'processes': processes,
             'output': output, 'tmp': tmp, 'cache': cache,
@@ -92,14 +88,14 @@ def run_tool(
         )  # type: ignore[misc]
         classification, regression = calculate_pathway_scores(
             feature_selection, set_fraction, min_set_size,
-            classifier, regressor, classification_metric, regression_metric,
+            classification_metric, regression_metric,
             cross_validation, seed, processes,
             output, tmp, effect_size_threshold,
             expression, cell_types, pseudotime,
             gene_sets, sizes, verbose=verbose
         )  # type: ignore[misc]
         calculate_background_scores(
-            classifier, regressor, classification_metric, regression_metric,
+            classification_metric, regression_metric,
             cross_validation, repeats, processes,
             output, tmp, cache,
             expression, cell_types, pseudotime,

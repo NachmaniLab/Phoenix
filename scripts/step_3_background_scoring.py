@@ -2,7 +2,7 @@ import os
 import time
 import pandas as pd
 from sklearn.metrics import make_scorer
-from scripts.consts import CLASSIFIERS, REGRESSORS, CLASSIFIER_ARGS, REGRESSOR_ARGS, METRICS, TARGET_COL, BackgroundMode
+from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL, BackgroundMode
 from scripts.data import get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
 from scripts.utils import define_background, define_batch_size, remove_outliers, save_step_runtime
@@ -49,8 +49,6 @@ def _get_target_size_pair_batch(sizes: list[int], targets: list[str], batch: int
 
 def calculate_background_scores_in_random_mode(
         sizes: list[int],
-        classifier: str,
-        regressor: str,
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
@@ -78,12 +76,6 @@ def calculate_background_scores_in_random_mode(
     classification_score_function = make_scorer(METRICS[classification_metric], greater_is_better=True)
     regression_score_function = make_scorer(METRICS[regression_metric], greater_is_better=True)
 
-    classification_predictor = CLASSIFIERS[classifier]
-    regression_predictor = REGRESSORS[regressor]
-
-    classifier_args = CLASSIFIER_ARGS[classification_predictor]
-    regressor_args = REGRESSOR_ARGS[regression_predictor]
-
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
 
@@ -101,8 +93,8 @@ def calculate_background_scores_in_random_mode(
                 scaled_expression=scaled_expression,
                 cv=classification_cv,
                 set_size=size,
-                predictor=classification_predictor,
-                predictor_args=classifier_args,  # type: ignore[arg-type]
+                predictor=CLASSIFICATION_PREDICTOR,
+                predictor_args=CLASSIFICATION_PREDICTOR_ARGS,  # type: ignore[arg-type]
                 score_function=classification_score_function,
                 cell_types=cell_types,
                 cell_type=target,
@@ -124,8 +116,8 @@ def calculate_background_scores_in_random_mode(
                 scaled_expression=scaled_expression,
                 cv=regression_cv,
                 set_size=size,
-                predictor=regression_predictor,
-                predictor_args=regressor_args,  # type: ignore[arg-type]
+                predictor=REGRESSION_PREDICTOR,
+                predictor_args=REGRESSION_PREDICTOR_ARGS,  # type: ignore[arg-type]
                 score_function=regression_score_function,
                 scaled_pseudotime=scaled_pseudotime,
                 lineage=target,
@@ -141,8 +133,6 @@ def calculate_background_scores_in_random_mode(
 
 
 def calculate_background_scores(
-        classifier: str,
-        regressor: str,
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
@@ -183,8 +173,6 @@ def calculate_background_scores(
                 print(f'Calculating background scores for random mode...')
             calculate_background_scores_in_random_mode(
                 sizes=sizes,
-                classifier=classifier,
-                regressor=regressor,
                 classification_metric=classification_metric,
                 regression_metric=regression_metric,
                 cross_validation=cross_validation,

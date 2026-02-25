@@ -17,7 +17,7 @@ from tests.interface import Test
 from run import run_tool
 from scripts.output import read_args, save_args, read_results, save_csv
 from scripts.consts import (
-    CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC,
+    CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
     SIZES, SEED, CELL_TYPE_COL, BackgroundMode
 )
@@ -111,8 +111,6 @@ class E2ERunTest(Test):
             'feature_selection': FEATURE_SELECTION,
             'set_fraction': SET_FRACTION,
             'min_set_size': SIZES[0],
-            'classifier': CLASSIFIER,
-            'regressor': REGRESSOR,
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
             'cross_validation': 2,

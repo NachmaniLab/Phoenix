@@ -10,7 +10,7 @@ from scripts.step_2_pathway_scoring import calculate_pathway_scores
 from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
 from scripts.consts import (
     CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, SIZES,
-    CLASSIFIER, REGRESSOR, CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED
+    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED
 )
 from scripts.output import aggregate_batch_results
 
@@ -42,8 +42,6 @@ class CalculatePathwayScoresTest(Test):
             'sizes': sizes,
             'feature_selection': FEATURE_SELECTION,
             'min_set_size': SIZES[0],
-            'classifier': CLASSIFIER,
-            'regressor': REGRESSOR,
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
             'seed': SEED,
@@ -239,8 +237,6 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
             expression=self.expression,
             cell_types=self.cell_types,
             pseudotime=self.pseudotime,
-            classifier=CLASSIFIER,
-            regressor=REGRESSOR,
             classification_metric=CLASSIFICATION_METRIC,
             regression_metric=REGRESSION_METRIC,
             cross_validation=2,
@@ -262,8 +258,6 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
             expression=self.expression,
             cell_types=None,
             pseudotime=self.pseudotime,
-            classifier=CLASSIFIER,
-            regressor=REGRESSOR,
             classification_metric=CLASSIFICATION_METRIC,
             regression_metric=REGRESSION_METRIC,
             cross_validation=2,
@@ -281,8 +275,6 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
             expression=self.expression,
             cell_types=self.cell_types,
             pseudotime=None,
-            classifier=CLASSIFIER,
-            regressor=REGRESSOR,
             classification_metric=CLASSIFICATION_METRIC,
             regression_metric=REGRESSION_METRIC,
             cross_validation=2,

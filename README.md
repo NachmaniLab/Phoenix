@@ -1,7 +1,7 @@
 ## Overview
 
 *Phoenix* is a comprehensive **P**at**H**way **O**ntology **EN**r**I**chment tool in single-cell e**X**pression data, focusing on identifying important pathways that distinguish between cell-types and across pseudo-time.
-It evaluates biological pathways for their predictive power in two key areas: predicting cell-types (discrete values) and estimating pseudo-time (continuous values), using classification and regression models, respectively.
+It evaluates biological pathways for their predictive power in two key areas: predicting cell-types (discrete values) and estimating pseudo-time (continuous values), using classification and regression random forest models, respectively.
 To assess the significance of the identified pathways, the tool compares the performance of each gene set against a random set of genes of equivalent size.
 Gene annotations that significantly outperform random gene sets are considered particularly relevant within the specific context of the data.
 
@@ -78,8 +78,6 @@ Customize feature selection parameters:
 
 Customize prediction model parameters:
 
-* `classifier`: Classification model: `Reg`, `KNN`, `SVM`, `DTree`, `RF`, `LGBM`, `XGB`, `GradBoost` or `MLP`. Default: `RF`.
-* `regressor`: Regression model: `Reg`, `KNN`, `SVM`, `DTree`, `RF`, `LGBM`, `XGB`, `GradBoost` or `MLP`. Default: `RF`.
 * `classification_metric`: Classification score: `accuracy`, `accuracy_balanced`, `f1`, `f1_weighted`, `f1_macro`, `f1_micro`, `f1_weighted_icf` or `recall_weighted_icf`. Default: `f1_weighted_icf`.
 * `regression_metric`: Regression score: `neg_mean_absolute_error`, `neg_mean_squared_error` or `neg_root_mean_squared_error`. Default: `neg_root_mean_squared_error`.
 * `cross_validation`: Number of cross-validation folds. Default: `10`.
