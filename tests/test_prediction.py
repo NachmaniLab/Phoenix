@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import numpy as np
 from sklearn.metrics import make_scorer
+from sklearn.model_selection import cross_val_score
 from tests.interface import Test
 from scripts.prediction import create_cv, get_train_target, get_train_data, train, compare_scores, get_prediction_score, encode_labels
 from scripts.step_2_pathway_scoring import get_gene_set_batch
@@ -23,7 +24,6 @@ class LabelEncodingTest(Test):
 
 class TrainDataTest(Test):
     def setUp(self):
-
         self.scaled_expression = pd.DataFrame({
             'Gene1': [1.0, 1.3, 1.5, 1.7],  # similar across cell types
             'Gene2': [10, 1, 10, 1],  # very different across cell types
@@ -57,7 +57,7 @@ class TrainDataTest(Test):
 
     def test_data_without_selection(self):
         # Test case where using cell_types and cell_type
-        X, _, features, importances = get_train_data(
+        X, _, features = get_train_data(
             self.scaled_expression,
             features=self.scaled_expression.columns, 
             cell_types=self.cell_types,
@@ -68,7 +68,6 @@ class TrainDataTest(Test):
 
         self.assertEqual(X.shape, self.scaled_expression.shape)
         self.assertListEqual(sorted(features), sorted(self.scaled_expression.columns.tolist()))
-        self.assertIsNone(importances)
 
     def test_cell_type_data_with_anova(self):
         # Test case where using cell_types and cell_type
@@ -77,7 +76,7 @@ class TrainDataTest(Test):
         for cell_type in [ALL_CELLS, 'TypeA', 'TypeB']:
 
             set_size = 4
-            X, y, selected_genes, importances = get_train_data(
+            X, y, selected_genes = get_train_data(
                 self.scaled_expression,
                 features=self.scaled_expression.columns, 
                 cell_types=self.cell_types,
@@ -89,11 +88,10 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
-            self.assertEqual(len(importances), set_size)
             self.assertTrue('Gene4' not in selected_genes)
 
             set_size = 3
-            X, y, selected_genes, importances = get_train_data(
+            X, y, selected_genes = get_train_data(
                 self.scaled_expression,
                 features=['Gene1', 'Gene3', 'Gene2', 'Gene4', 'Gene5'], 
                 cell_types=self.cell_types,
@@ -105,11 +103,10 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
-            self.assertEqual(len(importances), set_size)
             self.assertEqual(selected_genes, ['Gene3', 'Gene2', 'Gene5']) # SelectKBest does not change order of features
 
             set_size = 2
-            X, y, selected_genes, importances = get_train_data(
+            X, y, selected_genes = get_train_data(
                 self.scaled_expression,
                 features=self.scaled_expression.columns, 
                 cell_types=self.cell_types,
@@ -121,10 +118,9 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
-            self.assertEqual(len(importances), set_size)
             self.assertEqual(selected_genes, ['Gene2', 'Gene5']) # SelectKBest does not change order of features
 
-            X, y, selected_genes, importances = get_train_data(
+            X, y, selected_genes = get_train_data(
                 self.scaled_expression,
                 features=['Gene1', 'Gene3', 'Gene5'],  # missing good predictor Gene2
                 cell_types=self.cell_types,
@@ -136,7 +132,6 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
-            self.assertEqual(len(importances), set_size)
             self.assertEqual(selected_genes, ['Gene3', 'Gene5']) # SelectKBest does not change order of features
             
     def test_cell_type_data_with_rf(self):
@@ -146,7 +141,7 @@ class TrainDataTest(Test):
         for cell_type in [ALL_CELLS, 'TypeA', 'TypeB']:
 
             set_size = self.scaled_expression.shape[1] - 1
-            X, y, selected_genes, importances = get_train_data(
+            X, y, selected_genes = get_train_data(
                 self.scaled_expression,
                 features=self.scaled_expression.columns, 
                 cell_types=self.cell_types,
@@ -158,16 +153,13 @@ class TrainDataTest(Test):
             self.assertEqual(X.shape, (cell_dim, set_size))
             self.assertEqual(len(y), cell_dim)
             self.assertEqual(len(selected_genes), set_size)
-            self.assertEqual(len(importances), set_size)
 
-            # RandomForestClassifier orders features by importance:
-            self.assertTrue(importances == sorted(importances, reverse=True))
             self.assertTrue(selected_genes[0] in ['Gene5', 'Gene2']) 
             self.assertTrue(selected_genes[1] in ['Gene5', 'Gene2'])
             self.assertTrue('Gene4' not in selected_genes) 
 
             set_size = self.scaled_expression.shape[1] - 2
-            X, y, selected_genes, importances = get_train_data(
+            X, y, selected_genes = get_train_data(
                 self.scaled_expression,
                 features=[g for g in self.scaled_expression.columns if g != 'Gene2'], 
                 cell_types=self.cell_types,
@@ -177,8 +169,6 @@ class TrainDataTest(Test):
             )
 
             self.assertEqual(len(selected_genes), set_size)
-            self.assertEqual(len(importances), set_size)
-            self.assertTrue(importances == sorted(importances, reverse=True))
             self.assertTrue(selected_genes[0] == 'Gene5') 
             self.assertTrue('Gene4' not in selected_genes) 
 
@@ -188,7 +178,7 @@ class TrainDataTest(Test):
         lineage = 1
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
         set_size = 1
-        X, y, selected_genes, importances = get_train_data(
+        X, y, selected_genes = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -200,13 +190,12 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
-        self.assertEqual(len(importances), set_size)
         self.assertTrue(selected_genes[0] == 'Gene1')  # Gene1 increases across time in lineage 1
 
         lineage = 2
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
         set_size = 3
-        X, y, selected_genes, importances = get_train_data(
+        X, y, selected_genes = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -218,7 +207,6 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
-        self.assertEqual(len(importances), set_size)
         self.assertEqual(selected_genes, ['Gene2', 'Gene3', 'Gene5'])  # these 3 genes increase / decrease according to pseudotime order (and SelectKBest does not change order of features)
 
     def test_pseudotime_data_with_rf(self):
@@ -228,7 +216,7 @@ class TrainDataTest(Test):
 
         lineage = 1
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
-        X, y, selected_genes, importances = get_train_data(
+        X, y, selected_genes = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -240,13 +228,11 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
-        self.assertEqual(len(importances), set_size)
-        self.assertTrue(importances == sorted(importances, reverse=True))
         self.assertTrue(selected_genes[0] == 'Gene1')  # Gene1 increases across time in lineage 1
 
         lineage = 2
         cell_dim = self.scaled_pseudotime[lineage].dropna().shape[0]
-        X, y, selected_genes, importances = get_train_data(
+        X, y, selected_genes = get_train_data(
             scaled_expression=self.scaled_expression,
             features=self.scaled_expression.columns,
             scaled_pseudotime=self.scaled_pseudotime,
@@ -258,13 +244,11 @@ class TrainDataTest(Test):
         self.assertEqual(X.shape, (cell_dim, set_size))
         self.assertEqual(len(y), cell_dim)
         self.assertEqual(len(selected_genes), set_size)
-        self.assertEqual(len(importances), set_size)
-        self.assertTrue(importances == sorted(importances, reverse=True))
         self.assertEqual(selected_genes[0], 'Gene1')  # changes across each pseudotime step
         self.assertTrue('Gene4' not in selected_genes)  # does not change across pseudotime order
 
     def test_data_with_full_size_selection(self):
-        X, _, features, importances = get_train_data(
+        X, _, features = get_train_data(
             self.scaled_expression,
             features=self.scaled_expression.columns, 
             cell_types=self.cell_types,
@@ -275,10 +259,8 @@ class TrainDataTest(Test):
 
         self.assertEqual(X.shape, self.scaled_expression.shape)
         self.assertListEqual(sorted(features), sorted(self.scaled_expression.columns.tolist()))  # RF sorts features by importance
-        self.assertTrue(importances == sorted(importances, reverse=True))
-        self.assertEqual(len(importances), self.scaled_expression.shape[1])
 
-        X, _, features, importances = get_train_data(
+        X, _, features = get_train_data(
             self.scaled_expression,
             features=self.scaled_expression.columns, 
             cell_types=self.cell_types,
@@ -289,7 +271,6 @@ class TrainDataTest(Test):
 
         self.assertEqual(X.shape, self.scaled_expression.shape)
         self.assertListEqual(features, self.scaled_expression.columns.tolist())  # SelectKBest does not change order of features
-        self.assertEqual(len(importances), self.scaled_expression.shape[1])
 
 
 class TrainingPerformanceTest(Test):
@@ -391,68 +372,136 @@ class TrainingTest(Test):
         self.pseudotime1_target = get_train_target(scaled_pseudotime=scaled_pseudotime, lineage=1)
         self.pseudotime2_target = get_train_target(scaled_pseudotime=scaled_pseudotime, lineage=2)
 
-        self.cross_validation = 2
-    
-    def test_classification_training(self):
-        cv = create_cv(is_regression=False, n_splits=self.cross_validation)
+    def test_train_classification_logic(self):
+        score_function = make_scorer(METRICS[CLASSIFICATION_METRIC], greater_is_better=True)
+        cv = create_cv(is_regression=False, n_splits=10)
+        model = CLASSIFICATION_PREDICTOR(**CLASSIFICATION_PREDICTOR_ARGS)
+        X = self.generate_data().to_numpy()
+        y = np.array([i % 4 for i in range(X.shape[0])])
 
-        good_features = np.array(self.scaled_expression[['Gene2', 'Gene5']])
+        expected = float(np.median(cross_val_score(model, X, y, cv=cv, scoring=score_function)))
+        observed = train(X=X, y=y, model=model, score_function=score_function, cv=cv)[0]
+        self.assertEqual(observed, expected)
+
+    def test_train_regression_logic(self):
+        score_function = make_scorer(METRICS[REGRESSION_METRIC], greater_is_better=True)
+        cv = create_cv(is_regression=True, n_splits=10)
+        model = REGRESSION_PREDICTOR(**REGRESSION_PREDICTOR_ARGS)
+        X = self.generate_data().to_numpy()
+        y = np.random.rand(X.shape[0]) 
+
+        expected = float(np.median(cross_val_score(model, X, y, cv=cv, scoring=score_function)))
+        observed = train(X=X, y=y, model=model, score_function=score_function, cv=cv)[0]
+        self.assertAlmostEqual(observed, expected, places=10)
+
+    def test_classification_training_score(self):
+        cv = create_cv(is_regression=False, n_splits=2)
+
+        good_features = np.array(self.scaled_expression[['Gene5', 'Gene2']])
         middle_features = np.array(self.scaled_expression[['Gene2', 'Gene1']])
-        bad_features = np.array(self.scaled_expression[['Gene4', 'Gene1']])
+        bad_features = np.array(self.scaled_expression[['Gene1', 'Gene4']])
         
         for metric in ['f1_weighted_icf', 'accuracy_balanced']:
 
-                predictor = CLASSIFICATION_PREDICTOR
-                predictor_args = CLASSIFICATION_PREDICTOR_ARGS
-                model = predictor(**predictor_args)
-                score_function = make_scorer(METRICS[metric], greater_is_better=True)
-                
-                good_score = train(good_features, self.cell_type_target, model, score_function, cv)
-                middle_score = train(middle_features, self.cell_type_target, model, score_function, cv)
-                bad_score = train(bad_features, self.cell_type_target, model, score_function, cv)
+            predictor = CLASSIFICATION_PREDICTOR
+            predictor_args = CLASSIFICATION_PREDICTOR_ARGS
+            model = predictor(**predictor_args)
+            score_function = make_scorer(METRICS[metric], greater_is_better=True)
+            
+            good_score, good_importances = train(good_features, self.cell_type_target, model, score_function, cv)
+            middle_score, middle_importances = train(middle_features, self.cell_type_target, model, score_function, cv)
+            bad_score, bad_importances = train(bad_features, self.cell_type_target, model, score_function, cv)
 
-                self.assertEqual(good_score, 1)
-                self.assertGreaterEqual(good_score, middle_score)
-                self.assertGreaterEqual(middle_score, bad_score)
+            self.assertEqual(good_score, 1)
+            self.assertGreaterEqual(good_score, middle_score)
+            self.assertGreaterEqual(middle_score, bad_score)
 
-    def test_regression_training(self):
-        cv = create_cv(is_regression=True, n_splits=self.cross_validation)
+            self.assertTrue((good_importances > 0).all())
+            self.assertTrue((middle_importances > 0).all())
+            self.assertTrue((list(bad_importances) == [1, 0]))
+
+    def test_regression_training_score(self):
+        cv = create_cv(is_regression=True, n_splits=2)
 
         # Lineage 1
         good_features = np.array(self.scaled_expression[['Gene1']])
         good_features2 = np.array(self.scaled_expression[['Gene3']])
         bad_features = np.array(self.scaled_expression[['Gene4']])
         
-        predictor = REGRESSION_PREDICTOR
-        predictor_args = REGRESSION_PREDICTOR_ARGS
-        for metric in ['neg_mean_squared_error']:
+        model = REGRESSION_PREDICTOR(**REGRESSION_PREDICTOR_ARGS)
+        score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)
+                        
+        good_score, good_importances = train(good_features, self.pseudotime1_target, model, score_function, cv)
+        good_score2, good_importances2 = train(good_features2, self.pseudotime1_target, model, score_function, cv)
+        bad_score, bad_importances = train(bad_features, self.pseudotime1_target, model, score_function, cv)
 
-                model = predictor(**predictor_args)
-                score_function = make_scorer(METRICS[metric], greater_is_better=True)
-                                
-                good_score = train(good_features, self.pseudotime1_target, model, score_function, cv)
-                good_score2 = train(good_features2, self.pseudotime1_target, model, score_function, cv)
-                bad_score = train(bad_features, self.pseudotime1_target, model, score_function, cv)
+        self.assertGreaterEqual(good_score, bad_score)
+        self.assertGreaterEqual(good_score2, bad_score)
 
-                self.assertGreaterEqual(good_score, bad_score)
-                self.assertGreaterEqual(good_score2, bad_score)
+        self.assertGreaterEqual(good_importances[0], good_importances2[0])
+        self.assertEqual(bad_importances[0], 0)
 
         # Lineage 2
         good_features = np.array(self.scaled_expression[['Gene2']])
         good_features2 = np.array(self.scaled_expression[['Gene5']])
         bad_features = np.array(self.scaled_expression[['Gene4']])
         
-        for metric in ['neg_mean_squared_error']:
+        model = REGRESSION_PREDICTOR(**REGRESSION_PREDICTOR_ARGS)
+        score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)
+        
+        good_score, good_importances = train(good_features, self.pseudotime2_target, model, score_function, cv)
+        good_score2, good_importances2 = train(good_features2, self.pseudotime2_target, model, score_function, cv)
+        bad_score, bad_importances = train(bad_features, self.pseudotime2_target, model, score_function, cv)
 
-                model = predictor(**predictor_args)
-                score_function = make_scorer(METRICS[metric], greater_is_better=True)
-                
-                good_score = train(good_features, self.pseudotime2_target, model, score_function, cv)
-                good_score2 = train(good_features2, self.pseudotime2_target, model, score_function, cv)
-                bad_score = train(bad_features, self.pseudotime2_target, model, score_function, cv)
+        self.assertGreaterEqual(good_score, bad_score)
+        self.assertGreaterEqual(good_score2, bad_score)
 
-                self.assertGreaterEqual(good_score, bad_score)
-                self.assertGreaterEqual(good_score2, bad_score)
+        self.assertEqual(good_importances[0], good_importances2[0])
+        self.assertEqual(bad_importances[0], 0)
+
+    def test_classification_training_importance(self):
+        score_function = make_scorer(METRICS[CLASSIFICATION_METRIC], greater_is_better=True)
+        cv = create_cv(is_regression=False, n_splits=10)
+        model = CLASSIFICATION_PREDICTOR(**CLASSIFICATION_PREDICTOR_ARGS)
+
+        n = 400
+        y = np.array([i % 4 for i in range(n)])
+        good_feature = y.astype(float)
+        middle_feature = y.copy() + np.random.normal(0, 0.5, size=n)
+        bad_feature = np.ones(n)
+        X = np.column_stack([good_feature, middle_feature, bad_feature])
+
+        _, importances = train(X=X, y=y, model=model, score_function=score_function, cv=cv)
+
+        self.assertEqual(importances.shape, (3,))
+        self.assertTrue(np.isclose(importances.sum(), 1.0, atol=1e-6))
+
+        self.assertGreater(importances[0], importances[1])
+        self.assertGreater(importances[1], importances[2])
+
+        self.assertLess(importances[2], 1e-4)
+
+    def test_regression_training_importance(self):
+        score_function = make_scorer(METRICS[REGRESSION_METRIC], greater_is_better=True)
+        cv = create_cv(is_regression=True, n_splits=10)
+        model = REGRESSION_PREDICTOR(**REGRESSION_PREDICTOR_ARGS)
+
+        n = 400
+        y = np.random.rand(n)
+        good_feature = y.astype(float)
+        middle_feature = y.copy() + np.random.normal(0, 0.5, size=n)
+        bad_feature = np.ones(n)
+        X = np.column_stack([good_feature, middle_feature, bad_feature])
+
+        _, importances = train(X=X, y=y, model=model, score_function=score_function, cv=cv)
+
+        self.assertEqual(importances.shape, (3,))
+        self.assertTrue(np.isclose(importances.sum(), 1.0, atol=1e-6))
+
+        self.assertGreater(importances[0], importances[1])
+        self.assertGreater(importances[1], importances[2])
+
+        self.assertLess(importances[2], 1e-4)
 
 
 class ScoreComparisonTest(Test):
