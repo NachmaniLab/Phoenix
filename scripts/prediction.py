@@ -3,9 +3,10 @@ import warnings
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.feature_selection import SelectKBest, f_classif, f_regression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.base import clone
 from scripts.consts import ALL_CELLS, SEED, CELL_TYPE_COL
 
 
@@ -14,13 +15,17 @@ def get_train_target(
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
         lineage: str | None = None,
-    ):
+    ) -> pd.Series:
     if scaled_pseudotime is not None:
         return scaled_pseudotime.loc[:, lineage].dropna()
     
     if cell_type == ALL_CELLS:
         return cell_types[CELL_TYPE_COL]  # type: ignore[index]
     return cell_types[CELL_TYPE_COL] == cell_type  # type: ignore[index]
+
+
+def encode_labels(y: pd.Series) -> np.ndarray:
+    return y.astype("category").cat.codes.to_numpy()
 
 
 def get_train_data(
@@ -33,7 +38,7 @@ def get_train_data(
         set_size: int | None = None,
         feature_selection: str | None = None,
         seed: int = SEED
-    ) -> tuple[np.ndarray, pd.Series, list[str], list[float] | None]:
+    ) -> tuple[np.ndarray, np.ndarray, list[str]]:
     """
     feature_selection: either 'ANOVA' or 'RF', supported for both classification and regression
     """
@@ -59,8 +64,7 @@ def get_train_data(
             selected_features = SelectKBest(score_func=f_regression if is_regression else f_classif, k=set_size).fit(X, y)
             selected_indices = selected_features.get_support(indices=True)
             selected_genes = [features[i] for i in selected_indices]
-            importances = selected_features.scores_[selected_indices].tolist()
-            return selected_features.transform(X), y, selected_genes, importances
+            return selected_features.transform(X), y.to_numpy() if is_regression else encode_labels(y), selected_genes
         
         if feature_selection == 'RF':
             if is_regression:
@@ -69,22 +73,26 @@ def get_train_data(
                 importances = RandomForestClassifier(random_state=seed, class_weight='balanced', n_estimators=50).fit(X, y).feature_importances_
             selected_indices = (-importances).argsort()[:set_size]
             selected_genes = [features[i] for i in selected_indices]
-            return X[:, selected_indices], y, selected_genes, importances[selected_indices].tolist()
+            return X[:, selected_indices], y.to_numpy() if is_regression else encode_labels(y), selected_genes
         
         raise ValueError(f'Unsupported feature selection method {feature_selection}')
 
     # Select randomly
     selected_indices = random.Random(seed).sample(list(range(X.shape[1])), set_size)
-    return X[:, selected_indices], y, [features[i] for i in selected_indices], None
+    return X[:, selected_indices], y.to_numpy() if is_regression else encode_labels(y), [features[i] for i in selected_indices]
 
 
-def train(X, y, model, score_function, cv) -> float:
-    scores = cross_val_score(model, X, y, cv=cv, scoring=score_function)
-    return float(np.median(scores))
-
-
-def encode_labels(y: pd.Series) -> np.ndarray:
-    return y.astype("category").cat.codes.to_numpy()
+def train(X: np.ndarray, y: np.ndarray, model, score_function, cv) -> tuple[float, np.ndarray]:
+    scores = []
+    importances = []
+    for train_idx, val_idx in cv.split(X, y):
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+        clf = clone(model)  # ensure fresh model each fold
+        clf.fit(X_train, y_train)
+        scores.append(score_function(clf, X_val, y_val))
+        importances.append(clf.feature_importances_)
+    return float(np.median(scores)), np.median(np.vstack(importances), axis=0)
 
 
 def create_cv(is_regression: bool, n_splits: int):
@@ -107,8 +115,8 @@ def get_prediction_score(
         scaled_pseudotime: pd.DataFrame | None = None,
         cell_type: str | None = None,
         lineage: str | None = None,
-    ) -> tuple[float, list[str], list[float] | None]:
-    X, y, selected_genes, gene_importances = get_train_data(
+    ) -> tuple[float, list[str], list[float]]:
+    X, y, selected_genes = get_train_data(
         scaled_expression=scaled_expression,
         features=gene_set,
         cell_types=cell_types,
@@ -119,14 +127,17 @@ def get_prediction_score(
         feature_selection=feature_selection,
         seed=seed,
     )
-    score = train(
+    score, gene_importances = train(
         X=X,
-        y=y if scaled_pseudotime is not None else encode_labels(y),
+        y=y,
         model=predictor(**dict(predictor_args)),
         score_function=score_function,
-        cv=cv
+        cv=cv,
     )
-    return score, selected_genes, gene_importances
+    importance_series = pd.Series(
+        gene_importances, index=selected_genes, name='median_importance'
+    ).sort_values(ascending=False)
+    return score, importance_series.index.tolist(), importance_series.tolist()
 
 
 def compare_scores(pathway_score: float, background_scores: list[float], distribution: str) -> float:
