@@ -7,7 +7,20 @@ import numpy as np
 from scipy.io import mmwrite
 from scipy.sparse import coo_matrix
 from tests.interface import Test
-from scripts.data import preprocess_expression, preprocess_data, reduce_dimension, scale_expression, scale_pseudotime, sum_gene_expression, mean_gene_expression, calculate_cell_type_effect_size, calculate_pseudotime_effect_size, transform_log, re_transform_log
+from scripts.data import (
+    preprocess_expression,
+    preprocess_data,
+    reduce_dimension,
+    scale_expression,
+    scale_pseudotime,
+    sum_gene_expression,
+    mean_gene_expression,
+    calculate_cell_type_effect_size,
+    _get_lineage_info,
+    calculate_pseudotime_effect_size,
+    transform_log,
+    re_transform_log
+)
 from scripts.consts import CELL_TYPE_COL, TARGET_COL
 from scripts.output import _read_10x_mtx
 
@@ -110,6 +123,8 @@ class PreprocessingTest(Test):
         assert scaled_pseudotime.iloc[1, 1] == (0.5 - np.min([0.4, 0.5, 0.6])) / (np.max([0.4, 0.5, 0.6]) - np.min([0.4, 0.5, 0.6]))
         assert scaled_pseudotime.iloc[1, 0] == (0.2 - np.min([0.1, 0.2])) / (np.max([0.1, 0.2]) - np.min([0.1, 0.2]))
 
+
+class GeneExpressionAggregationTest(Test):
     def test_sum_gene_expression_geometric(self):
         df = pd.DataFrame({
             "gene1": [1, 2],
@@ -172,6 +187,9 @@ class PreprocessingTest(Test):
         expected = (5.0 + 10.0) / 2
         assert result == expected
 
+
+class EffectSizeTest(Test):
+
     def test_cell_type_effect_size(self):
         results = pd.DataFrame({
             TARGET_COL: ['target1', 'target2'],
@@ -198,6 +216,75 @@ class PreprocessingTest(Test):
         mean_target2 = np.mean([np.mean([13, 18, 23]), np.mean([14, 19, 24])])
         mean_other2 = np.mean([np.mean([11, 16, 21]), np.mean([12, 17, 22]), np.mean([15, 20, 25])])
         assert effect_size[1] == mean_target2 - mean_other2
+
+    def test_get_lineage_info(self):
+        # synthetic data
+        cells = [f"c{i}" for i in range(10)]
+        pseudotime = pd.DataFrame(
+            {"L1": np.linspace(0, 1, 10)},
+            index=cells
+        )
+
+        masked_expression = pd.DataFrame(
+            {
+                "g0": np.arange(10, dtype=float),
+                "g1": np.ones(10, dtype=float),
+            },
+            index=cells
+        )
+
+        info = _get_lineage_info(
+            masked_expression=masked_expression,
+            targets=["L1"],
+            pseudotime=pseudotime,
+            percentile=0.2,  # size = 2
+            bins=3,
+            delta=0.05,
+        )["L1"]
+
+        assert set(info.keys()) == {"orig_cells", "bins_cells", "bins_mean_pt"}
+
+        # orig_cells should be mean of first 2 cells
+        expected_orig = masked_expression.iloc[:2].mean()
+        pd.testing.assert_series_equal(info["orig_cells"], expected_orig)
+
+        # bins lists aligned
+        assert len(info["bins_cells"]) == len(info["bins_mean_pt"])
+        # last bin (mean close to 1) must be included
+        last_mean = pseudotime.iloc[-2:]["L1"].mean()
+        assert any(abs(m - last_mean) < 1e-12 for m in info["bins_mean_pt"])
+
+    def test_get_lineage_info_filters_all_intermediate_bins(self):
+        # 10 cells, pseudotime 0..1
+        cells = [f"c{i}" for i in range(10)]
+        pseudotime = pd.DataFrame({"L1": np.linspace(0, 1, 10)}, index=cells)
+
+        masked_expression = pd.DataFrame(
+            {"g0": np.arange(10, dtype=float), "g1": np.ones(10, dtype=float)},
+            index=cells,
+        )
+
+        # With delta larger than any possible distance between intermediate bin means and orig/last,
+        # all intermediate bins should be removed by the filtering rules.
+        info = _get_lineage_info(
+            masked_expression=masked_expression,
+            targets=["L1"],
+            pseudotime=pseudotime,
+            percentile=0.2,  # size=2
+            bins=10,
+            delta=0.6,       # aggressive: wipes all intermediate means vs orig_mean (~0.0556) and last_mean (~0.9444)
+        )["L1"]
+
+        assert info is not None
+        assert set(info.keys()) == {"orig_cells", "bins_cells", "bins_mean_pt"}
+
+        # Should end up with only the explicit last bin appended
+        assert len(info["bins_cells"]) == 1
+        assert len(info["bins_mean_pt"]) == 1
+
+        # And that bin mean should be the last mean (mean of last 20% cells)
+        expected_last_mean = pseudotime.iloc[-2:]["L1"].mean()
+        assert abs(info["bins_mean_pt"][0] - expected_last_mean) < 1e-12
 
     def test_pseudotime_effect_size(self):
         results = pd.DataFrame({

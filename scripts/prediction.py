@@ -88,10 +88,10 @@ def train(X: np.ndarray, y: np.ndarray, model, score_function, cv) -> tuple[floa
     for train_idx, val_idx in cv.split(X, y):
         X_train, X_val = X[train_idx], X[val_idx]
         y_train, y_val = y[train_idx], y[val_idx]
-        clf = clone(model)  # ensure fresh model each fold
-        clf.fit(X_train, y_train)
-        scores.append(score_function(clf, X_val, y_val))
-        importances.append(clf.feature_importances_)
+        fold_model = clone(model)  # ensure fresh model each fold
+        fold_model.fit(X_train, y_train)
+        scores.append(score_function(fold_model, X_val, y_val))
+        importances.append(fold_model.feature_importances_)
     return float(np.median(scores)), np.median(np.vstack(importances), axis=0)
 
 
