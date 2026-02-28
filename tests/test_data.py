@@ -250,7 +250,6 @@ class EffectSizeTest(Test):
 
         # bins lists aligned
         assert len(info["bins_cells"]) == len(info["bins_mean_pt"])
-       
         # last bin (mean close to 1) must be included
         last_mean = pseudotime.iloc[-2:]["L1"].mean()
         assert any(abs(m - last_mean) < 1e-12 for m in info["bins_mean_pt"])
