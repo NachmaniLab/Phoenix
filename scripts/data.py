@@ -202,9 +202,9 @@ def calculate_cell_type_effect_size(classification: pd.DataFrame, masked_express
     return pd.Series(effect_sizes)[classification.index]
 
 
-def calculate_pseudotime_effect_size(regression: pd.DataFrame, masked_expression: pd.DataFrame, pseudotime: pd.DataFrame, percentile: float = 0.2, bins: int = 10, verbose: bool = False) -> tuple[pd.Series, pd.Series]:
-    lineage_info: dict[str, dict[str, pd.Series] | list[float] | None] = {}
-    for target in regression[TARGET_COL].unique():
+def _get_lineage_info(masked_expression: pd.DataFrame, targets: list[str], pseudotime: pd.DataFrame, percentile: float, bins: int, delta: float):
+    lineage_info: dict[str, dict[str, pd.Series | list[pd.Series] | list[float]] | None] = {}
+    for target in targets:
         pseudotime_values = pseudotime[target].dropna().sort_values(ascending=True)
 
         if len(pseudotime_values) == 0:
@@ -217,17 +217,48 @@ def calculate_pseudotime_effect_size(regression: pd.DataFrame, masked_expression
             continue
         
         orig_cells = pseudotime_values.index[:size]
+        last_cells = pseudotime_values.index[-size:]
+
         pt_bins = np.linspace(pseudotime_values.min(), pseudotime_values.max(), bins + 1)[1:]  # exclude reference
         bins_cells = [
             np.abs(pseudotime_values - pt_value).nsmallest(size).index
             for pt_value in pt_bins
-        ] + [pseudotime_values.index[-size:]]  # include last cells as a separate bin
+        ]
+
+        orig_mean = pseudotime_values.loc[orig_cells].mean()
+        last_mean = pseudotime_values.loc[last_cells].mean()
+        bin_means = [pseudotime_values.loc[curr_cells].mean() for curr_cells in bins_cells]
+
+        kept_bins_cells = []
+        kept_bins_mean_pt = []
+        last_kept = None
+        for curr_cells, curr_mean in zip(bins_cells, bin_means):
+            if abs(curr_mean - orig_mean) < delta:
+                continue
+            if abs(curr_mean - last_mean) < delta:
+                continue
+            if last_kept is not None and abs(curr_mean - last_kept) < delta:
+                continue
+
+            kept_bins_cells.append(curr_cells)
+            kept_bins_mean_pt.append(curr_mean)
+            last_kept = curr_mean
+
+        if last_kept is None or abs(last_mean - last_kept) >= delta:
+            kept_bins_cells.append(last_cells)
+            kept_bins_mean_pt.append(last_mean)
 
         lineage_info[target] = {
             'orig_cells': masked_expression.loc[orig_cells].mean(skipna=True),
-            'bins_cells': [masked_expression.loc[curr_cells].mean(skipna=True) for curr_cells in bins_cells],
-            'bins_mean_pt': [pseudotime_values.loc[curr_cells].mean() for curr_cells in bins_cells]
+            'bins_cells': [masked_expression.loc[curr_cells].mean(skipna=True) for curr_cells in kept_bins_cells],
+            'bins_mean_pt': kept_bins_mean_pt
         }
+    return lineage_info
+
+
+def calculate_pseudotime_effect_size(regression: pd.DataFrame, masked_expression: pd.DataFrame, pseudotime: pd.DataFrame, percentile: float = 0.2, bins: int = 10, delta: float = 0.05, verbose: bool = False) -> tuple[pd.Series, pd.Series]:
+    targets = regression[TARGET_COL].unique().tolist()
+    lineage_info = _get_lineage_info(masked_expression, targets, pseudotime, percentile, bins, delta)
     
     effect_sizes: dict[int, float] = {}
     max_bin_mean_pt: dict[int, float] = {}
