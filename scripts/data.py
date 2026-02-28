@@ -202,7 +202,7 @@ def calculate_cell_type_effect_size(classification: pd.DataFrame, masked_express
     return pd.Series(effect_sizes)[classification.index]
 
 
-def _get_lineage_info(masked_expression: pd.DataFrame, targets: list[str], pseudotime: pd.DataFrame, percentile: float, bins: int, delta: float):
+def _get_lineage_info(masked_expression: pd.DataFrame, targets: list[str], pseudotime: pd.DataFrame, percentile: float, bins: int, delta: float) -> dict[str, dict[str, pd.Series | list[pd.Series] | list[float]] | None]:
     lineage_info: dict[str, dict[str, pd.Series | list[pd.Series] | list[float]] | None] = {}
     for target in targets:
         pseudotime_values = pseudotime[target].dropna().sort_values(ascending=True)
