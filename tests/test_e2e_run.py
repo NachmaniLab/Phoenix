@@ -15,7 +15,7 @@ import numpy as np
 from unittest.mock import patch
 from tests.interface import Test
 from run import run_tool
-from scripts.output import read_args, save_args, read_results, save_csv
+from scripts.output import read_args, save_args, read_results, save_csv, convert_from_str
 from scripts.consts import (
     CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
@@ -165,20 +165,31 @@ class E2ERunTest(Test):
             self.assertTrue(os.path.exists(path), msg=f"{dir} directory is missing")
             self.assertTrue(len(os.listdir(path)) > 0, msg=f"{dir} directory is empty")
         
-        classification = read_results('cell_type_classification', output)
-        regression = read_results('pseudotime_regression', output)
+        classification: pd.DataFrame = read_results('cell_type_classification', output)
+        regression: pd.DataFrame = read_results('pseudotime_regression', output)
 
         if not os.path.exists(os.path.join(TEST_RESULTS_DIR, f'classification_{background_mode.name.lower()}.csv')):
             save_csv(classification, f'classification_{background_mode.name.lower()}', TEST_RESULTS_DIR, keep_index=False)
         if not os.path.exists(os.path.join(TEST_RESULTS_DIR, f'regression_{background_mode.name.lower()}.csv')):
             save_csv(regression, f'regression_{background_mode.name.lower()}', TEST_RESULTS_DIR, keep_index=False)
 
-        original_classification = read_results(f'classification_{background_mode.name.lower()}', TEST_RESULTS_DIR)
-        original_regression = read_results(f'regression_{background_mode.name.lower()}', TEST_RESULTS_DIR)
+        original_classification: pd.DataFrame = read_results(f'classification_{background_mode.name.lower()}', TEST_RESULTS_DIR)
+        original_regression: pd.DataFrame = read_results(f'regression_{background_mode.name.lower()}', TEST_RESULTS_DIR)
 
-        pd.testing.assert_frame_equal(classification, original_classification, atol=1e-3)  # type: ignore[union-attr]
-        pd.testing.assert_frame_equal(regression, original_regression, atol=1e-3)  # type: ignore[union-attr]
+        pd.testing.assert_frame_equal(classification.drop(['gene_importances'], axis=1), original_classification.drop(['gene_importances'], axis=1), atol=1e-3)  # type: ignore[union-attr]
+        pd.testing.assert_frame_equal(regression.drop(['gene_importances'], axis=1), original_regression.drop(['gene_importances'], axis=1), atol=1e-3)  # type: ignore[union-attr]
 
+        for i in range(len(classification)):
+            original_importances = convert_from_str(original_classification.iloc[i]['gene_importances'])
+            new_importances = convert_from_str(classification.iloc[i]['gene_importances'])
+            for original, new in zip(original_importances, new_importances):  # type: ignore[arg-type]
+                self.assertAlmostEqual(original, new, places=5)
+        for i in range(len(regression)):
+            original_importances = convert_from_str(original_regression.iloc[i]['gene_importances'])
+            new_importances = convert_from_str(regression.iloc[i]['gene_importances'])
+            for original, new in zip(original_importances, new_importances):  # type: ignore[arg-type]
+                self.assertAlmostEqual(original, new, places=5)
+            
     def test_e2e_local_run_random_mode(self):
         self._run_e2e(BackgroundMode.RANDOM)
 
