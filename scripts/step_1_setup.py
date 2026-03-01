@@ -30,7 +30,7 @@ def setup(
         tmp: str,
         return_data: bool = False,
         verbose: bool = True,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, list[str]], list[int]] | None:
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, list[str]], list[int], BackgroundMode] | None:
 
     step_start = time.time()
 
@@ -49,5 +49,5 @@ def setup(
     save_step_runtime(tmp, 'step1', time.time() - step_start)
 
     if return_data:
-        return expression, cell_types, pseudotime, reduction, gene_sets, sizes
+        return expression, cell_types, pseudotime, reduction, gene_sets, sizes, background_mode
     return None
