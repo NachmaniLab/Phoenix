@@ -73,13 +73,13 @@ def run_tool(
         # Aggregation
         aggregation_args = {
             'output': output, 'tmp': tmp, 'cache': cache,
-            'background_mode': background_mode, 'distribution': distribution, 'repeats': repeats,
+            'distribution': distribution, 'repeats': repeats,
             'corrected_effect_size': corrected_effect_size, 'start_time': start_time
         }
         run_aggregation_cmd(aggregation_args, processes, tmp, background_scoring_job_id)
     
     else:
-        expression, cell_types, pseudotime, reduction, gene_sets, sizes = setup(
+        expression, cell_types, pseudotime, reduction, gene_sets, sizes, background_mode = setup(
             expression, cell_types, pseudotime, reduction,
             preprocessed, exclude_cell_types, exclude_lineages,
             pathway_database, custom_pathways, organism,
@@ -104,8 +104,8 @@ def run_tool(
         )
         aggregate(
             output, tmp, cache,
-            background_mode, distribution, repeats, corrected_effect_size,
-            classification, regression, start_time, verbose=verbose
+            distribution, repeats, corrected_effect_size,
+            background_mode, classification, regression, start_time, verbose=verbose
         )
         
 

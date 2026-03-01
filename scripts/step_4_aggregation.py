@@ -2,7 +2,7 @@ import time as runtime
 import numpy as np
 import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
-from scripts.output import aggregate_batch_results, load_background_scores, save_csv
+from scripts.output import aggregate_batch_results, load_background_scores, load_sizes, save_csv
 from scripts.prediction import compare_scores
 from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, load_total_runtime, save_step_runtime, str2enum
 from scripts.visualization import plot
@@ -80,10 +80,10 @@ def aggregate(
         output: str,
         tmp: str,
         cache: str,
-        background_mode: BackgroundMode | str,
         distribution: str,
         repeats: int,
         corrected_effect_size: bool,
+        background_mode: BackgroundMode | None = None,
         classification: pd.DataFrame | None = None,
         regression: pd.DataFrame | None = None,
         start_time: float | None = None,
@@ -92,7 +92,8 @@ def aggregate(
     step_start = runtime.time()
     if verbose:
         print('Aggregating and evaluating results...')
-    background_mode = str2enum(BackgroundMode, background_mode)
+    if background_mode is None:
+        _, background_mode = load_sizes(output)
 
     classification = evaluate_and_correct_result(
         classification,
