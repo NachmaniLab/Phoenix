@@ -61,7 +61,9 @@ def get_train_data(
     # Select best features using either ANOVA or RF
     if feature_selection is not None:
         if feature_selection == 'ANOVA':
-            selected_features = SelectKBest(score_func=f_regression if is_regression else f_classif, k=set_size).fit(X, y)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='invalid value encountered in sqrt', category=RuntimeWarning)
+                selected_features = SelectKBest(score_func=f_regression if is_regression else f_classif, k=set_size).fit(X, y)
             selected_indices = selected_features.get_support(indices=True)
             selected_genes = [features[i] for i in selected_indices]
             return selected_features.transform(X), y.to_numpy() if is_regression else encode_labels(y), selected_genes

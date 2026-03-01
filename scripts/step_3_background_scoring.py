@@ -6,7 +6,7 @@ from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_AR
 from scripts.data import get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
 from scripts.utils import define_background, define_batch_size, remove_outliers, save_step_runtime
-from scripts.output import aggregate_batch_results, load_sizes, get_preprocessed_data, save_background_scores
+from scripts.output import aggregate_batch_results, background_exists, load_sizes, get_preprocessed_data, save_background_scores
 
 
 def calculate_background_scores_in_real_mode(
@@ -87,6 +87,14 @@ def calculate_background_scores_in_random_mode(
 
     for size, target in cell_type_size_pairs:
         background_scores = []
+        background = define_background(
+            set_size=size,
+            background_mode=BackgroundMode.RANDOM,
+            cell_type=target,
+            repeats=repeats,
+        )
+        if background_exists(background, cache):
+            continue
         for i in range(repeats):
             background_scores.append(get_prediction_score(
                 seed=i,
@@ -100,16 +108,18 @@ def calculate_background_scores_in_random_mode(
                 cell_type=target,
             )[0])
         background_scores = remove_outliers(background_scores) if trim_background else background_scores
-        background = define_background(
-            set_size=size,
-            background_mode=BackgroundMode.RANDOM,
-            cell_type=target,
-            repeats=repeats,
-        )
         save_background_scores(background_scores, background, cache)
         
     for size, target in lineage_size_pairs:
         background_scores = []
+        background = define_background(
+            set_size=size,
+            background_mode=BackgroundMode.RANDOM,
+            lineage=target,
+            repeats=repeats,
+        )
+        if background_exists(background, cache):
+            continue
         for i in range(repeats):
             background_scores.append(get_prediction_score(
                 seed=i,
@@ -123,12 +133,6 @@ def calculate_background_scores_in_random_mode(
                 lineage=target,
             )[0])
         background_scores = remove_outliers(background_scores) if trim_background else background_scores
-        background = define_background(
-            set_size=size,
-            background_mode=BackgroundMode.RANDOM,
-            lineage=target,
-            repeats=repeats,
-        )
         save_background_scores(background_scores, background, cache)
 
 
@@ -187,4 +191,3 @@ def calculate_background_scores(
             )
 
     save_step_runtime(tmp, 'step3', time.time() - step_start, batch)
-
