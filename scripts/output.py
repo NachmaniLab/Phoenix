@@ -164,7 +164,7 @@ def load_sizes(output_path: str) -> tuple[list[int], BackgroundMode]:
 
 def background_exists(background: str, cache_path: str | None = None) -> bool:
     background = make_valid_filename(background).lower()
-    return cache_path is not None and os.path.exists(f'{cache_path}/{background}.yml') and os.path.getsize(f'{cache_path}/{background}.yml') > 0
+    return cache_path is not None and cache_path and os.path.exists(f'{cache_path}/{background}.yml') and os.path.getsize(f'{cache_path}/{background}.yml') > 0
 
 
 def load_background_scores(background: str, cache_path: str | None = None, verbose: bool = False):
