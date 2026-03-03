@@ -381,7 +381,7 @@ def plot_volcano(
         ax.axhline(y_thresh, color="red")
 
         ax.set_xlim((-2, 2))
-        ax.set_ylim((0, 15))
+        ax.set_ylim(bottom=0)
 
         n_sig = (((sub[effect_col] < -effect_thresh) | (sub[effect_col] > effect_thresh)) & (sub[fdr_col] < fdr_thresh)).sum()
         ax.set_title(f"{target} (n_sig={n_sig})", fontsize=9)
