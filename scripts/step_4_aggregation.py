@@ -4,7 +4,7 @@ import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
 from scripts.output import aggregate_batch_results, load_background_scores, load_sizes, save_csv
 from scripts.prediction import compare_scores
-from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, load_total_runtime, save_step_runtime, str2enum
+from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, load_total_runtime, save_step_runtime
 from scripts.visualization import plot
 
 

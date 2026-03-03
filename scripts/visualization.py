@@ -7,8 +7,8 @@ import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
-from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, str2enum
-from scripts.output import read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
+from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci
+from scripts.output import load_sizes, read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
 from scripts.consts import THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
 
 
@@ -408,6 +408,7 @@ def plot_experiment(
         target_type: str,
         results: pd.DataFrame | str,
         target_data: pd.DataFrame | str,
+        background_mode: BackgroundMode | None = None,
         args: dict | None = None,
         expression: pd.DataFrame | str = 'expression',
         reduction: pd.DataFrame | str = 'reduction',
@@ -424,6 +425,7 @@ def plot_experiment(
     assert target_type in ['cell_types', 'pseudotime']
 
     args = args or read_args(output)
+    background_mode = background_mode or load_sizes(output)[1]
     expression = get_preprocessed_data(expression, output)
     reduction = get_preprocessed_data(reduction, output)
     target_data = get_preprocessed_data(target_data, output)
@@ -443,7 +445,7 @@ def plot_experiment(
         fdr=experiment['fdr'],
         set_size=int(experiment['set_size']),
         background_score_mean=experiment['background_score_mean'],
-        background_mode=str2enum(BackgroundMode, args['background_mode']),
+        background_mode=background_mode,
         cache=os.path.join(output, 'cache'),
         cell_type=target if target_type == 'cell_types' else None,
         lineage=target if target_type == 'pseudotime' else None,
@@ -522,6 +524,7 @@ def plot(
     all: whether to plot all pathways
     """
     args = args or read_args(output)
+    background_mode = load_sizes(output)[1]
     expression = get_preprocessed_data(expression, output)
     reduction = get_preprocessed_data(reduction, output)
     cell_types = get_preprocessed_data(cell_types, output)
@@ -548,7 +551,7 @@ def plot(
             heatmap_pathways = data.index
             for target in data.columns:
                 for pathway_name in heatmap_pathways:
-                    plot_experiment(output, target, pathway_name, target_type, results, target_data, args, expression, reduction)
+                    plot_experiment(output, target, pathway_name, target_type, results, target_data, background_mode, args, expression, reduction)
 
         else:  # plot interesting pathways
             size = max(MAP_SIZE // data.shape[1], 1)
@@ -562,7 +565,7 @@ def plot(
                     heatmap_pathways.extend(pathway_names[:size])
                     for pathway_name in pathway_names:
                         exp_plot_pathways.append((target, pathway_name))
-                        plot_experiment(output, target, pathway_name, target_type, results, target_data, args, expression, reduction)
+                        plot_experiment(output, target, pathway_name, target_type, results, target_data, background_mode, args, expression, reduction)
             # heatmap_pathways.extend(get_top_sum_pathways(data, ascending=False, size=3))
             data = data.drop(non_unique_targets, axis=1)
 
