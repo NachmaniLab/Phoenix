@@ -60,6 +60,9 @@ def get_train_data(
 
     # Select best features using either ANOVA or RF
     if feature_selection is not None:
+        if set_size == len(features):
+            return X, y.to_numpy() if is_regression else encode_labels(y), features
+
         if feature_selection == 'ANOVA':
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered in sqrt', category=RuntimeWarning)
@@ -94,6 +97,11 @@ def train(X: np.ndarray, y: np.ndarray, model, score_function, cv) -> tuple[floa
         fold_model.fit(X_train, y_train)
         scores.append(score_function(fold_model, X_val, y_val))
         importances.append(fold_model.feature_importances_)
+        # if len(scores) >= 6:
+        #     rounded_scores = [round(s, 2) for s in scores]
+        #     med = np.median(rounded_scores)
+        #     if sum(s == med for s in rounded_scores) >= 6:
+        #         break
     return float(np.median(scores)), np.median(np.vstack(importances), axis=0)
 
 
@@ -155,7 +163,9 @@ def compare_scores(pathway_score: float, background_scores: list[float], distrib
 
     elif distribution == 'gamma':
         try:
-            shape, loc, scale = stats.gamma.fit(background_scores)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid value encountered')
+                shape, loc, scale = stats.gamma.fit(background_scores)
             cdf_value = stats.gamma.cdf(pathway_score, shape, loc, scale)
             p_value = 1 - cdf_value
         except stats._warnings_errors.FitError:

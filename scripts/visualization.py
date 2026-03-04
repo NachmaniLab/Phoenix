@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, warnings
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -134,14 +134,19 @@ def _plot_prediction_scores(
         plt.ylabel('Density')
 
     if show_fit and distribution == 'gamma':
-        shape, loc, scale = stats.gamma.fit(background_scores)
-        x = np.linspace(min(background_scores), max(background_scores), 1000)
-        pdf = stats.gamma.pdf(x, shape, loc=loc, scale=scale)
-        bin_edges = np.histogram_bin_edges(background_scores, bins=30)  # get bin edges for consistent plotting
-        bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-        fit_values = np.interp(bin_centers, x, pdf * len(background_scores) * np.diff(bin_edges)[0])  # scale fit to match histogram frequency
-        plt.plot(bin_centers, fit_values, color='grey', lw=2, label='Gamma fit')
-
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid value encountered')
+                shape, loc, scale = stats.gamma.fit(background_scores)
+            x = np.linspace(min(background_scores), max(background_scores), 1000)
+            pdf = stats.gamma.pdf(x, shape, loc=loc, scale=scale)
+            bin_edges = np.histogram_bin_edges(background_scores, bins=30)  # get bin edges for consistent plotting
+            bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+            fit_values = np.interp(bin_centers, x, pdf * len(background_scores) * np.diff(bin_edges)[0])  # scale fit to match histogram frequency
+            plt.plot(bin_centers, fit_values, color='grey', lw=2, label='Gamma fit')
+        except Exception:
+            pass
+        
     plt.xlabel(metric)
     if add_legend:
         plt.legend(fontsize=LEGEND_FONT_SIZE)
@@ -295,6 +300,8 @@ def _plot_gene_set_expression(
     if len(gene_set) <= 1 or isinstance(gene_expression, np.float64):  
         return
     clean_expression = remove_outliers(gene_expression)
+    if len(clean_expression) == 0:
+        return
     
     plt.scatter(reduction.iloc[:, 0], reduction.iloc[:, 1], s=POINT_SIZE, c=BACKGROUND_COLOR)
     plt.scatter(reduction.loc[cells].iloc[:, 0], reduction.loc[cells].iloc[:, 1], s=POINT_SIZE, c=gene_expression, cmap=plt.cm.Blues, vmin=min(clean_expression), vmax=max(clean_expression))  # type: ignore[attr-defined]

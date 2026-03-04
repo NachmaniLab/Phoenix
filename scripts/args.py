@@ -113,8 +113,7 @@ def process_run_args(args):
     create_dir(args.cache)
 
     args.tmp = os.path.join(args.output, 'tmp')
-    if args.processes:
-        create_dir(args.tmp)
+    create_dir(args.tmp)
     
     return args
 

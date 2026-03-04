@@ -148,7 +148,9 @@ def sum_gene_expression(gene_set_expression: pd.DataFrame, geometric: bool = Fal
         return gene_set_expression.sum() if gene_set_expression.ndim == 1 else gene_set_expression.sum(axis=1)
     untransformed = re_transform_log(gene_set_expression)
     summed = untransformed.sum() if untransformed.ndim == 1 else untransformed.sum(axis=1)
-    return transform_log(summed)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid value encountered in log')
+        return transform_log(summed)
 
 
 def mean_gene_expression(gene_set_expression: pd.DataFrame) -> pd.Series:
