@@ -7,7 +7,7 @@ import numpy as np
 import seaborn as sns
 from bisect import bisect_right
 from statsmodels.stats.multitest import multipletests
-from scripts.consts import LIST_SEP, CELL_TYPE_COL, ALL_CELLS, BackgroundMode
+from scripts.consts import LIST_SEP, ALL_CELLS, BackgroundMode
 
 
 transform_log = lambda x: np.log2(x + 1)
