@@ -4,8 +4,8 @@ from scripts.consts import BackgroundMode
 from scripts.data import preprocess_data
 from scripts.backgrounds import define_sizes, set_background_mode
 from scripts.pathways import get_gene_sets
-from scripts.utils import define_batch_size, save_step_runtime, str2enum
-from scripts.output import read_raw_data
+from scripts.utils import balance_gene_sets, define_batch_size, save_step_runtime, str2enum
+from scripts.output import read_raw_data, save_gene_sets
 
 
 def setup(
@@ -37,7 +37,9 @@ def setup(
     expression, cell_types, pseudotime, reduction = read_raw_data(expression, cell_types, pseudotime, reduction)
     expression, cell_types, pseudotime, reduction = preprocess_data(expression, cell_types, pseudotime, reduction, preprocessed=preprocessed, exclude_cell_types=exclude_cell_types, exclude_lineages=exclude_lineages, seed=seed, output=output, verbose=verbose)
     gene_sets = get_gene_sets(pathway_database, custom_pathways, organism, expression.columns, min_set_size, output)  # type: ignore[attr-defined]
-    
+    gene_sets = balance_gene_sets(gene_sets, processes)
+    save_gene_sets(gene_sets, output)  # re-save in balanced order
+
     background_mode = str2enum(BackgroundMode, background_mode)
     background_mode = set_background_mode(background_mode, len(gene_sets))  # type: ignore[arg-type]
     sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, repeats, random_sizes, output)

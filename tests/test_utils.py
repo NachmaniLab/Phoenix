@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scripts.consts import ALL_CELLS, SIZES, BackgroundMode
 from tests.interface import Test
-from scripts.utils import define_set_size, define_batch_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime
+from scripts.utils import define_set_size, define_batch_size, balance_gene_sets, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime
 
 
 class UtilTest(Test):
@@ -105,6 +105,58 @@ class UtilTest(Test):
             save_step_runtime(tmp, 'step1', 10.0)
             save_step_runtime(tmp, 'step1', 20.0)
             self.assertAlmostEqual(load_total_runtime(tmp, 'step1'), 20.0)
+
+    def test_balance_gene_sets_no_processes(self):
+        """When processes=0 (single batch), gene sets should be returned unchanged."""
+        gene_sets = {'a': ['g1', 'g2', 'g3'], 'b': ['g4'], 'c': ['g5', 'g6']}
+        result = balance_gene_sets(gene_sets, 0)
+        self.assertEqual(list(result.keys()), ['a', 'b', 'c'])
+
+    def test_balance_gene_sets_single_process(self):
+        """When processes=1, gene sets should be returned unchanged."""
+        gene_sets = {'a': ['g1', 'g2', 'g3'], 'b': ['g4'], 'c': ['g5', 'g6']}
+        result = balance_gene_sets(gene_sets, 1)
+        self.assertEqual(list(result.keys()), ['a', 'b', 'c'])
+
+    def test_balance_gene_sets_round_robin(self):
+        """Round-robin dealing should spread large and small sets across batches."""
+        # sizes: big=10, med1=6, med2=5, small1=2, small2=1, tiny=1
+        gene_sets = {
+            'big':    [f'g{i}' for i in range(10)],
+            'med1':   [f'g{i}' for i in range(6)],
+            'med2':   [f'g{i}' for i in range(5)],
+            'small1': [f'g{i}' for i in range(2)],
+            'small2': [f'g{i}' for i in range(1)],
+            'tiny':   [f'g{i}' for i in range(1)],
+        }
+        result = balance_gene_sets(gene_sets, 3)
+        keys = list(result.keys())
+        batch_size = define_batch_size(len(keys), 3)  # = 2
+
+        batch1_keys = keys[0:batch_size]
+        batch2_keys = keys[batch_size:2*batch_size]
+        batch3_keys = keys[2*batch_size:]
+
+        batch1_total = sum(len(result[k]) for k in batch1_keys)
+        batch2_total = sum(len(result[k]) for k in batch2_keys)
+        batch3_total = sum(len(result[k]) for k in batch3_keys)
+
+        # All gene sets should still be present
+        self.assertEqual(set(result.keys()), set(gene_sets.keys()))
+        for k in gene_sets:
+            self.assertEqual(result[k], gene_sets[k])
+
+        # Batches should be roughly balanced (no batch has more than 2x another)
+        totals = [batch1_total, batch2_total, batch3_total]
+        self.assertLessEqual(max(totals), 2 * min(totals), f'Batches are not balanced: {totals}')
+
+    def test_balance_gene_sets_preserves_all(self):
+        """All gene sets and their contents should be preserved after balancing."""
+        gene_sets = {f'set{i}': [f'gene{j}' for j in range(i + 1)] for i in range(20)}
+        result = balance_gene_sets(gene_sets, 4)
+        self.assertEqual(set(result.keys()), set(gene_sets.keys()))
+        for k in gene_sets:
+            self.assertEqual(result[k], gene_sets[k])
 
 
 if __name__ == '__main__':
