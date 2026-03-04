@@ -100,5 +100,16 @@ class ICFMetricTest(MetricTest):
         self.assertAlmostEqual(CLASSIFICATION_METRICS['f1_weighted_icf'](y_true, y_pred), 0.8, places=1)
 
 
+class MetricReproducibilityTest(MetricTest):
+
+    def test_metric_reproducibility(self):
+        y_true = [1, 2, 3, 4, 4, 1, 2, 3, 4, 4]
+        y_pred = [2, 4, 4, 1, 1, 1, 3, 1, 4, 1]
+        result = CLASSIFICATION_METRICS['f1_weighted_icf'](y_true, y_pred)
+        self.assertEqual(result, 0.12244897959183675)
+        result = CLASSIFICATION_METRICS['recall_weighted_icf'](y_true, y_pred)
+        self.assertEqual(result, 0.17857142857142855)
+
+
 if __name__ == '__main__':
     unittest.main()
