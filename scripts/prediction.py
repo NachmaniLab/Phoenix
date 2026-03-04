@@ -166,8 +166,7 @@ def compare_scores(pathway_score: float, background_scores: list[float], distrib
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=RuntimeWarning, message='invalid value encountered')
                 shape, loc, scale = stats.gamma.fit(background_scores)
-            cdf_value = stats.gamma.cdf(pathway_score, shape, loc, scale)
-            p_value = 1 - cdf_value
+                p_value = stats.gamma.sf(pathway_score, shape, loc, scale)
         except stats._warnings_errors.FitError:
             p_value = np.NaN
         
