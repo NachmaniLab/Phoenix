@@ -37,7 +37,7 @@ def setup(
     expression, cell_types, pseudotime, reduction = read_raw_data(expression, cell_types, pseudotime, reduction)
     expression, cell_types, pseudotime, reduction = preprocess_data(expression, cell_types, pseudotime, reduction, preprocessed=preprocessed, exclude_cell_types=exclude_cell_types, exclude_lineages=exclude_lineages, seed=seed, output=output, verbose=verbose)
     gene_sets = get_gene_sets(pathway_database, custom_pathways, organism, expression.columns, min_set_size, output)  # type: ignore[attr-defined]
-    
+
     background_mode = str2enum(BackgroundMode, background_mode)
     background_mode = set_background_mode(background_mode, len(gene_sets))  # type: ignore[arg-type]
     sizes = define_sizes(background_mode, gene_sets, set_fraction, min_set_size, repeats, random_sizes, output)

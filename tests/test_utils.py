@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scripts.consts import ALL_CELLS, SIZES, BackgroundMode
 from tests.interface import Test
-from scripts.utils import define_set_size, define_batch_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime
+from scripts.utils import define_set_size, define_batch_size, order_gene_sets_by_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime
 
 
 class UtilTest(Test):
@@ -105,6 +105,12 @@ class UtilTest(Test):
             save_step_runtime(tmp, 'step1', 10.0)
             save_step_runtime(tmp, 'step1', 20.0)
             self.assertAlmostEqual(load_total_runtime(tmp, 'step1'), 20.0)
+
+    def test_order_gene_sets_by_size(self):
+        """Gene sets should be ordered from largest to smallest."""
+        gene_sets = {'a': ['g1', 'g2', 'g3'], 'b': ['g4'], 'c': ['g5', 'g6']}
+        result = order_gene_sets_by_size(gene_sets)
+        self.assertEqual(list(result.keys()), ['a', 'c', 'b'])
 
 
 if __name__ == '__main__':

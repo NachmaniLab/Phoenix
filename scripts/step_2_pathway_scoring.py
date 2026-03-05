@@ -4,22 +4,21 @@ import time
 import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import make_scorer
-from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, EFFECT_SIZE_THRESHOLD, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
+from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import convert_to_str, define_batch_size, define_set_size, save_step_runtime
+from scripts.utils import convert_to_str, define_set_size, save_step_runtime
 from scripts.output import load_sizes, get_preprocessed_data, read_gene_sets, save_csv
 
 
-def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, batch_size: int) -> dict[str, list[str]]:
+def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, processes: int) -> dict[str, list[str]]:
     """
+    gene_sets: sorted by size
     batch: number between 1 and `processes`, or 0 for a single batch
     """
-    if not batch:
+    if not batch or not processes:
         return gene_sets
-    batch_start = (batch - 1) * batch_size
-    batch_end = min(batch_start + batch_size, len(gene_sets))
-    set_names = list(gene_sets.keys())[batch_start:batch_end]
+    set_names = list(gene_sets.keys())[batch-1::processes]
     return {set_name: gene_sets[set_name] for set_name in set_names}
 
 
@@ -56,8 +55,7 @@ def calculate_pathway_scores(
     scaled_pseudotime = scale_pseudotime(pseudotime) if pseudotime is not None else None
 
     gene_sets = read_gene_sets(output, gene_sets)
-    batch_size = define_batch_size(len(gene_sets), processes)
-    batch_gene_sets = get_gene_set_batch(gene_sets, batch, batch_size)
+    batch_gene_sets = get_gene_set_batch(gene_sets, batch, processes)
 
     sizes = load_sizes(output)[0] if sizes is None else sizes
 

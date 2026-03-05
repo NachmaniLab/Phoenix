@@ -103,6 +103,10 @@ def define_set_size(set_len: int, set_fraction: float, min_set_size: int, all_si
     return all_sizes[i] if i >= 0 else min(all_sizes[0], set_len)
 
 
+def order_gene_sets_by_size(gene_sets: dict[str, list[str]]) -> dict[str, list[str]]:
+    return dict(sorted(gene_sets.items(), key=lambda item: len(item[1]), reverse=True))
+
+
 def define_batch_size(set_len: int, processes: int) -> int:
     if not processes:
         return set_len

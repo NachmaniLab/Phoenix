@@ -1,7 +1,7 @@
 import os, requests, datetime, warnings  # type: ignore[import-untyped]
 import gseapy as gp
 from bioservices.kegg import KEGG
-from scripts.utils import make_valid_term
+from scripts.utils import make_valid_term, order_gene_sets_by_size
 from scripts.output import read_gene_sets, save_gene_sets
 
 
@@ -82,14 +82,17 @@ def get_go_db(db):
 
 def get_library(db, organism):
     db = get_go_db(db)
-    all_libraries = gp.get_library_name(organism=organism)
+    try:
+        all_libraries = gp.get_library_name(organism=organism)
+    except Exception as e:
+        raise RuntimeError(f'Failed to retrieve GO libraries for {organism} - try again later ({e})')
 
     curr_year = datetime.datetime.now().year
     for year in range(curr_year, 2017, -1):
         newest_db = [lib for lib in all_libraries if f'{db}_{year}' == lib]
         if newest_db:
             return newest_db[0]
-    raise RuntimeError('No available GO databsae')
+    raise RuntimeError('No available GO database')
     
 
 def get_go_pathways(db, organism):
@@ -220,6 +223,7 @@ def get_gene_sets(pathway_database: list[str], custom_pathways: list[str], organ
     gene_sets = {set_name: gene_set for set_name, gene_set in gene_sets.items() if len(gene_set) >= min_set_size}
 
     # Save
+    gene_sets = order_gene_sets_by_size(gene_sets)
     save_gene_sets(gene_sets, output)
 
     return gene_sets
