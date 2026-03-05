@@ -4,7 +4,7 @@ from scripts.consts import BackgroundMode
 from scripts.data import preprocess_data
 from scripts.backgrounds import define_sizes, set_background_mode
 from scripts.pathways import get_gene_sets
-from scripts.utils import define_batch_size, save_step_runtime, str2enum
+from scripts.utils import define_batch_size, get_peak_memory_mb, save_peak_memory, save_step_runtime, str2enum
 from scripts.output import read_raw_data
 
 
@@ -47,6 +47,7 @@ def setup(
         print(f'Running experiments for {len(gene_sets)} gene annotations with batch size of {define_batch_size(len(gene_sets), processes)}...')
 
     save_step_runtime(tmp, 'step1', time.time() - step_start)
+    save_peak_memory(tmp, 'step1', get_peak_memory_mb())
 
     if return_data:
         return expression, cell_types, pseudotime, reduction, gene_sets, sizes, background_mode

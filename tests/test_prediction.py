@@ -642,6 +642,7 @@ class GetBatchTest(Test):
     def test_zero_processes_returns_all(self):
         result = get_gene_set_batch(self.gene_sets, batch=1, processes=0)
         self.assertEqual(result, self.gene_sets)
+
     def test_gene_set_batch(self):
         result = get_gene_set_batch(self.gene_sets, batch=1, processes=3)
         expected = {
