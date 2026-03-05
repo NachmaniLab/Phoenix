@@ -85,7 +85,7 @@ def get_library(db, organism):
     try:
         all_libraries = gp.get_library_name(organism=organism)
     except Exception as e:
-        raise RuntimeError(f'Currently failed to retrieve GO libraries for {organism}: {e}')
+        raise RuntimeError(f'Failed to retrieve GO libraries for {organism} - try again later ({e})')
 
     curr_year = datetime.datetime.now().year
     for year in range(curr_year, 2017, -1):
