@@ -13,6 +13,7 @@ from scripts.output import load_sizes, get_preprocessed_data, read_gene_sets, sa
 
 def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, processes: int) -> dict[str, list[str]]:
     """
+    gene_sets: sorted by size
     batch: number between 1 and `processes`, or 0 for a single batch
     """
     if not batch or not processes:
