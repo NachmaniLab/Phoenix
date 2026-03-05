@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scripts.consts import ALL_CELLS, SIZES, BackgroundMode
 from tests.interface import Test
-from scripts.utils import define_set_size, define_batch_size, order_gene_sets_by_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime, save_peak_memory, load_peak_memory, format_memory
+from scripts.utils import define_set_size, define_batch_size, order_gene_sets_by_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime, save_peak_memory, load_peak_memory, format_memory, _HAS_RESOURCE
 
 
 class UtilTest(Test):
@@ -107,12 +107,16 @@ class UtilTest(Test):
             self.assertAlmostEqual(load_total_runtime(tmp, 'step1'), 20.0)
 
     def test_save_and_load_peak_memory(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         with tempfile.TemporaryDirectory() as tmp:
             save_peak_memory(tmp, 'step2', 512.0)
             self.assertTrue(os.path.exists(os.path.join(tmp, 'memory_step2.txt')))
             self.assertAlmostEqual(load_peak_memory(tmp, 'step2'), 512.0)
 
     def test_save_peak_memory_with_batch(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         with tempfile.TemporaryDirectory() as tmp:
             save_peak_memory(tmp, 'step2', 300.0, batch=1)
             save_peak_memory(tmp, 'step2', 500.0, batch=2)
@@ -121,6 +125,8 @@ class UtilTest(Test):
             self.assertAlmostEqual(load_peak_memory(tmp, 'step2'), 500.0)
 
     def test_load_peak_memory_returns_max(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         with tempfile.TemporaryDirectory() as tmp:
             save_peak_memory(tmp, 'step2', 100.0, batch=1)
             save_peak_memory(tmp, 'step2', 999.0, batch=2)
@@ -128,6 +134,8 @@ class UtilTest(Test):
             self.assertAlmostEqual(load_peak_memory(tmp, 'step2'), 999.0)
 
     def test_load_peak_memory_all_steps(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         with tempfile.TemporaryDirectory() as tmp:
             save_peak_memory(tmp, 'step1', 100.0)
             save_peak_memory(tmp, 'step2', 800.0)
@@ -136,21 +144,29 @@ class UtilTest(Test):
             self.assertAlmostEqual(load_peak_memory(tmp), 800.0)
 
     def test_load_peak_memory_empty_dir(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         with tempfile.TemporaryDirectory() as tmp:
             self.assertAlmostEqual(load_peak_memory(tmp, 'step2'), 0.0)
 
     def test_save_peak_memory_overwrites(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         with tempfile.TemporaryDirectory() as tmp:
             save_peak_memory(tmp, 'step1', 200.0)
             save_peak_memory(tmp, 'step1', 350.0)
             self.assertAlmostEqual(load_peak_memory(tmp, 'step1'), 350.0)
 
     def test_format_memory_mb(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         self.assertEqual(format_memory(0.0), '0.0 MB')
         self.assertEqual(format_memory(512.0), '512.0 MB')
         self.assertEqual(format_memory(1023.9), '1023.9 MB')
 
     def test_format_memory_gb(self):
+        if not _HAS_RESOURCE:
+            self.skipTest("Resource module not available, skipping memory tests.")
         self.assertEqual(format_memory(1024.0), '1.00 GB')
         self.assertEqual(format_memory(2048.0), '2.00 GB')
         self.assertEqual(format_memory(5263.36), '5.14 GB')

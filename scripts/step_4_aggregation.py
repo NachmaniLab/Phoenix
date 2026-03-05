@@ -4,7 +4,7 @@ import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
 from scripts.output import aggregate_batch_results, load_background_scores, load_sizes, save_csv
 from scripts.prediction import compare_scores
-from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, format_memory, get_peak_memory_mb, load_total_runtime, load_peak_memory, save_step_runtime, save_peak_memory
+from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, format_memory, get_peak_memory_mb, load_total_runtime, load_peak_memory, save_step_runtime, save_peak_memory, _HAS_RESOURCE
 from scripts.visualization import plot
 
 
@@ -143,15 +143,16 @@ def aggregate(
         print(f"Total time background scoring step: {format_runtime(step_3_time)}")
         print(f"Total time aggregation step: {format_runtime(step_4_time)}")
 
-        step_1_mem = load_peak_memory(tmp, 'step1')
-        step_2_mem = load_peak_memory(tmp, 'step2')
-        step_3_mem = load_peak_memory(tmp, 'step3')
+        if _HAS_RESOURCE:
+            step_1_mem: float = load_peak_memory(tmp, 'step1')  # type: ignore[assignment]  
+            step_2_mem: float = load_peak_memory(tmp, 'step2')  # type: ignore[assignment]  
+            step_3_mem: float = load_peak_memory(tmp, 'step3')  # type: ignore[assignment]  
 
-        print(f"Peak memory overall: {format_memory(max(step_1_mem, step_2_mem, step_3_mem, step_4_mem))}")
-        if processes:
-            print(f"Peak memory setup step: {format_memory(step_1_mem)}")
-            print(f"Peak memory pathway scoring step: {format_memory(step_2_mem)}")
-            print(f"Peak memory background scoring step: {format_memory(step_3_mem)}")
-            print(f"Peak memory aggregation step: {format_memory(step_4_mem)}")
+            print(f"Peak memory overall: {format_memory(max(step_1_mem, step_2_mem, step_3_mem, step_4_mem))}")  # type: ignore[arg-type, type-var]
+            if processes:
+                print(f"Peak memory setup step: {format_memory(step_1_mem)}")
+                print(f"Peak memory pathway scoring step: {format_memory(step_2_mem)}")
+                print(f"Peak memory background scoring step: {format_memory(step_3_mem)}")
+                print(f"Peak memory aggregation step: {format_memory(step_4_mem)}")  # type: ignore[arg-type]
 
     return classification, regression
