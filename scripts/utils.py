@@ -10,7 +10,7 @@ from statsmodels.stats.multitest import multipletests
 from scripts.consts import LIST_SEP, ALL_CELLS, BackgroundMode
 
 try:
-    import resource;
+    import resource
     _HAS_RESOURCE = True
 except ImportError:
     _HAS_RESOURCE = False
