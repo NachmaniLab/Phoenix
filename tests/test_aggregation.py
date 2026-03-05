@@ -177,7 +177,7 @@ class AggregateTest(Test):
         })
         with tempfile.TemporaryDirectory() as tmp:
             aggregate(
-                output='', tmp=tmp, cache='',
+                output='', tmp=tmp, cache='', processes=1,
                 background_mode=BackgroundMode.REAL,
                 distribution='normal',
                 repeats=100,

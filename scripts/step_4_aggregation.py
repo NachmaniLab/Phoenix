@@ -80,6 +80,7 @@ def aggregate(
         output: str,
         tmp: str,
         cache: str,
+        processes: int,
         distribution: str,
         repeats: int,
         corrected_effect_size: bool,
@@ -147,9 +148,10 @@ def aggregate(
         step_3_mem = load_peak_memory(tmp, 'step3')
 
         print(f"Peak memory overall: {format_memory(max(step_1_mem, step_2_mem, step_3_mem, step_4_mem))}")
-        print(f"Peak memory setup step: {format_memory(step_1_mem)}")
-        print(f"Peak memory pathway scoring step: {format_memory(step_2_mem)}")
-        print(f"Peak memory background scoring step: {format_memory(step_3_mem)}")
-        print(f"Peak memory aggregation step: {format_memory(step_4_mem)}")
+        if processes:
+            print(f"Peak memory setup step: {format_memory(step_1_mem)}")
+            print(f"Peak memory pathway scoring step: {format_memory(step_2_mem)}")
+            print(f"Peak memory background scoring step: {format_memory(step_3_mem)}")
+            print(f"Peak memory aggregation step: {format_memory(step_4_mem)}")
 
     return classification, regression

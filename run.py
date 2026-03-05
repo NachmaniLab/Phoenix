@@ -72,7 +72,7 @@ def run_tool(
 
         # Aggregation
         aggregation_args = {
-            'output': output, 'tmp': tmp, 'cache': cache,
+            'output': output, 'tmp': tmp, 'cache': cache, 'processes': processes,
             'distribution': distribution, 'repeats': repeats,
             'corrected_effect_size': corrected_effect_size, 'start_time': start_time
         }
@@ -103,7 +103,7 @@ def run_tool(
             sizes, background_mode, verbose=verbose
         )
         aggregate(
-            output, tmp, cache,
+            output, tmp, cache, processes,
             distribution, repeats, corrected_effect_size,
             background_mode, classification, regression, start_time, verbose=verbose
         )
