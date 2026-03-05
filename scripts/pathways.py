@@ -82,14 +82,17 @@ def get_go_db(db):
 
 def get_library(db, organism):
     db = get_go_db(db)
-    all_libraries = gp.get_library_name(organism=organism)
+    try:
+        all_libraries = gp.get_library_name(organism=organism)
+    except Exception as e:
+        raise RuntimeError(f'Currently failed to retrieve GO libraries for {organism}: {e}')
 
     curr_year = datetime.datetime.now().year
     for year in range(curr_year, 2017, -1):
         newest_db = [lib for lib in all_libraries if f'{db}_{year}' == lib]
         if newest_db:
             return newest_db[0]
-    raise RuntimeError('No available GO databsae')
+    raise RuntimeError('No available GO database')
     
 
 def get_go_pathways(db, organism):
