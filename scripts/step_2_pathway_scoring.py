@@ -15,7 +15,7 @@ def get_gene_set_batch(gene_sets: dict[str, list[str]], batch: int, processes: i
     """
     batch: number between 1 and `processes`, or 0 for a single batch
     """
-    if not batch:
+    if not batch or not processes:
         return gene_sets
     set_names = list(gene_sets.keys())[batch-1::processes]
     return {set_name: gene_sets[set_name] for set_name in set_names}
