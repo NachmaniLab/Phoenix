@@ -195,8 +195,6 @@ def save_peak_memory(tmp: str, step_name: str, peak_mb: float | None, batch: int
 
 
 def load_peak_memory(tmp: str, step_name: str = '') -> float | None:
-    if not _HAS_RESOURCE:
-        return None
     pattern = os.path.join(tmp, f'memory_{step_name}*.txt')
     peak = 0.0
     for path in glob.glob(pattern):
