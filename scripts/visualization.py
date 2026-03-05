@@ -250,11 +250,11 @@ def _plot_pseudotime(
         title: bool = False,
         subtitle: bool = False,
     ):
-    plt.scatter(reduction.iloc[:, 0], reduction.iloc[:, 1], s=POINT_SIZE, c=BACKGROUND_COLOR)
+    plt.scatter(reduction.iloc[:, 0], reduction.iloc[:, 1], s=POINT_SIZE, c=BACKGROUND_COLOR, rasterized=True)
     trajectories = [trajectory] if trajectory else pseudotime.columns.tolist()
     cells = reduction.index.intersection(pseudotime.index)
     for lineage in trajectories:
-        plt.scatter(reduction.loc[cells, reduction.columns[0]], reduction.loc[cells, reduction.columns[1]], s=POINT_SIZE, c=pseudotime.loc[cells, lineage], cmap=plt.cm.plasma)  # type: ignore[attr-defined]
+        plt.scatter(reduction.loc[cells, reduction.columns[0]], reduction.loc[cells, reduction.columns[1]], s=POINT_SIZE, c=pseudotime.loc[cells, lineage], cmap=plt.cm.plasma, rasterized=True)  # type: ignore[attr-defined]
     if title: plt.title(f'{trajectory} Trajectory' if trajectory else 'Trajectories')
     if subtitle: plt.suptitle(f'n = {len(reduction.index):,}', y=0.83, x=0.7, fontsize=11)
     plt.xlabel(reduction.columns[0])
@@ -272,7 +272,7 @@ def _plot_cell_types(
     if cell_type != ALL_CELLS:
         cell_types.loc[cell_types[CELL_TYPE_COL] != cell_type, CELL_TYPE_COL] = OTHER_CELLS
     color_mapping = get_color_mapping(cell_types[CELL_TYPE_COL].unique().tolist()) if cell_type == ALL_CELLS else {cell_type: INTEREST_COLOR, OTHER_CELLS: BACKGROUND_COLOR}
-    sns.scatterplot(data=reduction, x=reduction.columns[0], y=reduction.columns[1], hue=cell_types[CELL_TYPE_COL], palette=color_mapping, s=POINT_SIZE, edgecolor='none')
+    sns.scatterplot(data=reduction, x=reduction.columns[0], y=reduction.columns[1], hue=cell_types[CELL_TYPE_COL], palette=color_mapping, s=POINT_SIZE, edgecolor='none', rasterized=True)
     plt.legend(title='', fontsize=LEGEND_FONT_SIZE)
     if title: plt.title(cell_type if cell_type != ALL_CELLS else 'Cell-types')
     if subtitle: plt.suptitle(f'n = {len(cell_types):,}', y=0.83, x=0.7, fontsize=11)
@@ -303,8 +303,8 @@ def _plot_gene_set_expression(
     if len(clean_expression) == 0:
         return
     
-    plt.scatter(reduction.iloc[:, 0], reduction.iloc[:, 1], s=POINT_SIZE, c=BACKGROUND_COLOR)
-    plt.scatter(reduction.loc[cells].iloc[:, 0], reduction.loc[cells].iloc[:, 1], s=POINT_SIZE, c=gene_expression, cmap=plt.cm.Blues, vmin=min(clean_expression), vmax=max(clean_expression))  # type: ignore[attr-defined]
+    plt.scatter(reduction.iloc[:, 0], reduction.iloc[:, 1], s=POINT_SIZE, c=BACKGROUND_COLOR, rasterized=True)
+    plt.scatter(reduction.loc[cells].iloc[:, 0], reduction.loc[cells].iloc[:, 1], s=POINT_SIZE, c=gene_expression, cmap=plt.cm.Blues, vmin=min(clean_expression), vmax=max(clean_expression), rasterized=True)  # type: ignore[attr-defined]
     
     plt.colorbar(label='Pathway expression sum')
     plt.xlabel(reduction.columns[0])

@@ -1,4 +1,4 @@
-import re, os, sys, time, glob, resource
+import re, os, sys, time, glob
 from typing import Any
 import pandas as pd
 from functools import wraps
@@ -8,6 +8,12 @@ import seaborn as sns
 from bisect import bisect_right
 from statsmodels.stats.multitest import multipletests
 from scripts.consts import LIST_SEP, ALL_CELLS, BackgroundMode
+
+try:
+    import resource;
+    _HAS_RESOURCE = True
+except ImportError:
+    _HAS_RESOURCE = False
 
 
 transform_log = lambda x: np.log2(x + 1)
@@ -168,22 +174,29 @@ def format_runtime(elapsed: float) -> str:
     return f"{hours}h {minutes}m {seconds}s"
 
 
-def get_peak_memory_mb() -> float:
-    ru_maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+def get_peak_memory_mb() -> float | None:
+    # Not supported on Windows
+    if not _HAS_RESOURCE:
+        return None
+    ru_maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss  # type: ignore[attr-defined]
     # Linux reports ru_maxrss in kilobytes; macOS reports it in bytes
     if sys.platform == 'darwin':
         return ru_maxrss / (1024 * 1024)
     return ru_maxrss / 1024
 
 
-def save_peak_memory(tmp: str, step_name: str, peak_mb: float, batch: int = 0) -> None:
+def save_peak_memory(tmp: str, step_name: str, peak_mb: float | None, batch: int = 0) -> None:
+    if peak_mb is None:
+        return
     suffix = f'_batch{batch}' if batch else ''
     path = os.path.join(tmp, f'memory_{step_name}{suffix}.txt')
     with open(path, 'w') as f:
         f.write(str(peak_mb))
 
 
-def load_peak_memory(tmp: str, step_name: str = '') -> float:
+def load_peak_memory(tmp: str, step_name: str = '') -> float | None:
+    if not _HAS_RESOURCE:
+        return None
     pattern = os.path.join(tmp, f'memory_{step_name}*.txt')
     peak = 0.0
     for path in glob.glob(pattern):
