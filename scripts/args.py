@@ -37,10 +37,10 @@ def parse_run_args() -> argparse.Namespace:
                         help='Path to custom gene sets where columns represent set names and rows include gene symbols (CSV file)')
 
     # Feature selection
-    parser.add_argument('--feature_selection', type=str, default=FEATURE_SELECTION,
-                        help='Feature selection method applied to each gene set: ' + ', '.join(FEATURE_SELECTION_METHODS))
     parser.add_argument('--set_fraction', type=float, default=SET_FRACTION,
                         help='Fraction of genes to select from each gene set')
+    parser.add_argument('--feature_selection', type=str, default=FEATURE_SELECTION,
+                        help='Feature selection method applied to each gene set (only has an effect when set_fraction < 1): ' + ', '.join(FEATURE_SELECTION_METHODS))
     parser.add_argument('--min_set_size', type=int, default=SIZES[0],
                         help='Minimum number of genes to select from each gene set')
 
