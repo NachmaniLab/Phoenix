@@ -623,15 +623,51 @@ class PredictionScoreTest(Test):
   
 
 class GetBatchTest(Test):
-    def setUp(self) -> None:
-        self.gene_sets = {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']}
-                    
-    def test_get_gene_set_batch(self):
-        self.assertEqual(get_gene_set_batch(self.gene_sets, batch=0, batch_size=-1), self.gene_sets)
-        self.assertEqual(get_gene_set_batch(self.gene_sets, batch=1, batch_size=3), {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3']})
-        self.assertEqual(get_gene_set_batch(self.gene_sets, batch=2, batch_size=3), {'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']})
-        self.assertEqual(get_gene_set_batch(self.gene_sets, batch=3, batch_size=2), {'set5': ['gene5'], 'set6': ['gene6']})
-        self.assertEqual(get_gene_set_batch(self.gene_sets, batch=1, batch_size=4), {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4']})
+    def setUp(self):
+        # ordered by size descending
+        self.gene_sets = {
+            "1": list(range(10)),
+            "2": list(range(6)),
+            "3": list(range(5)),
+            "4": list(range(4)),
+            "5": list(range(3)),
+            "6": list(range(2)),
+            "7": list(range(1)),
+        }
+
+    def test_single_batch_returns_all(self):
+        result = get_gene_set_batch(self.gene_sets, batch=0, processes=3)
+        self.assertEqual(result, self.gene_sets)
+
+    def test_gene_set_batch(self):
+        result = get_gene_set_batch(self.gene_sets, batch=1, processes=3)
+        expected = {
+            "1": self.gene_sets["1"],
+            "4": self.gene_sets["4"],
+            "7": self.gene_sets["7"],
+        }
+        self.assertEqual(result, expected)
+
+        result = get_gene_set_batch(self.gene_sets, batch=2, processes=3)
+        expected = {
+            "2": self.gene_sets["2"],
+            "5": self.gene_sets["5"],
+        }
+        self.assertEqual(result, expected)
+
+        result = get_gene_set_batch(self.gene_sets, batch=3, processes=3)
+        expected = {
+            "3": self.gene_sets["3"],
+            "6": self.gene_sets["6"],
+        }
+        self.assertEqual(result, expected)
+
+    def test_all_batches_cover_all_sets(self):
+        processes = 3
+        combined = {}
+        for batch in range(1, processes + 1):
+            combined.update(get_gene_set_batch(self.gene_sets, batch, processes))
+        self.assertEqual(set(combined.keys()), set(self.gene_sets.keys()))
 
 
 if __name__ == '__main__':

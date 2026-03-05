@@ -103,19 +103,8 @@ def define_set_size(set_len: int, set_fraction: float, min_set_size: int, all_si
     return all_sizes[i] if i >= 0 else min(all_sizes[0], set_len)
 
 
-def balance_gene_sets(gene_sets: dict[str, list[str]], processes: int) -> dict[str, list[str]]:
-    """
-    Reorder gene sets so that contiguous batch slices have approximately equal total gene counts.
-    Uses round-robin dealing: sort by size descending, then deal into `processes` buckets cyclically.
-    When slicing by index, each batch gets a balanced mix of large and small sets.
-    """
-    if not processes or processes == 1:
-        return gene_sets
-    sorted_names = sorted(gene_sets, key=lambda name: len(gene_sets[name]), reverse=True)
-    buckets: list[list[str]] = [[] for _ in range(processes)]
-    for i, name in enumerate(sorted_names):
-        buckets[i % processes].append(name)
-    return {name: gene_sets[name] for bucket in buckets for name in bucket}
+def order_gene_sets_by_size(gene_sets: dict[str, list[str]]) -> dict[str, list[str]]:
+    return dict(sorted(gene_sets.items(), key=lambda item: len(item[1]), reverse=True))
 
 
 def define_batch_size(set_len: int, processes: int) -> int:
