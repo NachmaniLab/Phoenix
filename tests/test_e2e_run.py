@@ -206,8 +206,8 @@ class E2ERunTest(Test):
         due to definition of sizes in real mode and the fact that set_fraction is 1
         """
         output = os.path.join(self.test_dir, 'output_set_fraction_1')
-        for dir in [output, os.path.join(output, 'cache'), os.path.join(output, 'tmp')]:
-            os.makedirs(dir, exist_ok=True)
+        for dir_path in [output, os.path.join(output, 'cache'), os.path.join(output, 'tmp')]:
+            os.makedirs(dir_path, exist_ok=True)
 
         args = self.get_args(background_mode=BackgroundMode.REAL, output=output)
         args['set_fraction'] = 1.0
