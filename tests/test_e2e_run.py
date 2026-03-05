@@ -18,7 +18,7 @@ from run import run_tool
 from scripts.output import read_args, save_args, read_results, save_csv, convert_from_str
 from scripts.consts import (
     CLASSIFICATION_METRIC, REGRESSION_METRIC,
-    FEATURE_SELECTION, SET_FRACTION, DISTRIBUTIONS,
+    FEATURE_SELECTION, DISTRIBUTIONS,
     SIZES, SEED, CELL_TYPE_COL, BackgroundMode
 )
 from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
@@ -109,7 +109,7 @@ class E2ERunTest(Test):
             'pathway_database': [],
             'custom_pathways': [self.custom_pathways],
             'feature_selection': FEATURE_SELECTION,
-            'set_fraction': SET_FRACTION,
+            'set_fraction': 0.75,
             'min_set_size': SIZES[0],
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
