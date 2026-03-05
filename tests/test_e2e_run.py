@@ -15,7 +15,7 @@ import numpy as np
 from unittest.mock import patch
 from tests.interface import Test
 from run import run_tool
-from scripts.output import read_args, save_args, read_results, save_csv, convert_from_str
+from scripts.output import read_args, read_gene_sets, save_args, read_results, save_csv, convert_from_str
 from scripts.consts import (
     CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, DISTRIBUTIONS,
@@ -199,7 +199,43 @@ class E2ERunTest(Test):
             return original_define_sizes_in_real_mode(gene_sets, set_fraction, min_set_size, repeats=2)
         mock_define_sizes.side_effect = side_effect
         self._run_e2e(BackgroundMode.REAL)
-          
+
+    def test_gene_set_sizes_remain(self):
+        """
+        Note that this is a specific case where selected set size is equal to the actual set size,
+        due to definition of sizes in real mode and the fact that set_fraction is 1
+        """
+        output = os.path.join(self.test_dir, 'output_set_fraction_1')
+        for dir in [output, os.path.join(output, 'cache'), os.path.join(output, 'tmp')]:
+            os.makedirs(dir, exist_ok=True)
+
+        args = self.get_args(background_mode=BackgroundMode.REAL, output=output)
+        args['set_fraction'] = 1.0
+
+        custom_pathways = pd.DataFrame({
+            'Pathway1': ['Gene3', 'Gene1', 'Gene2', '',  ''],
+            'Pathway2': ['Gene10', 'Gene11', 'Gene12', 'Gene13', 'Gene14'],
+            'Pathway3': ['Gene20', 'Gene21', 'Gene22', '', ''],
+            'Pathway4': ['Gene30', 'Gene31', 'Gene32', 'Gene33', 'Gene34'],
+        })
+        custom_pathways.to_csv(self.custom_pathways, index=False)
+
+        save_args(argparse.Namespace(**args), args['output'])
+        run_tool(**args)
+
+        classification: pd.DataFrame = read_results('cell_type_classification', output)
+        regression: pd.DataFrame = read_results('pseudotime_regression', output)
+
+        pathways = read_gene_sets(output)
+        for pathway in pathways:
+            pathway_size = len(pathways[pathway])
+            pathway_class = classification[classification['set_name'] == pathway]
+            pathway_regr = regression[regression['set_name'] == pathway]
+            self.assertTrue(all(pathway_class['set_size'] == pathway_size))
+            self.assertTrue(all(len(convert_from_str(g)) == pathway_size for g in pathway_class['gene_importances']))            
+            self.assertTrue(all(pathway_regr['set_size'] == pathway_size))
+            self.assertTrue(all(len(convert_from_str(g)) == pathway_size for g in pathway_regr['gene_importances']))
+
 
 if __name__ == '__main__':
     unittest.main()
