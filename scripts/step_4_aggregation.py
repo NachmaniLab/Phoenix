@@ -1,11 +1,10 @@
 import time as runtime
-import resource
 import numpy as np
 import pandas as pd
 from scripts.consts import TARGET_COL, BackgroundMode
 from scripts.output import aggregate_batch_results, load_background_scores, load_sizes, save_csv
 from scripts.prediction import compare_scores
-from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, format_memory, load_total_runtime, load_peak_memory, save_step_runtime, save_peak_memory
+from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, format_memory, get_peak_memory_mb, load_total_runtime, load_peak_memory, save_step_runtime, save_peak_memory
 from scripts.visualization import plot
 
 
@@ -125,7 +124,7 @@ def aggregate(
 
     step_4_time = runtime.time() - step_start
     save_step_runtime(tmp, 'step4', step_4_time)
-    step_4_mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+    step_4_mem = get_peak_memory_mb()
     save_peak_memory(tmp, 'step4', step_4_mem)
 
     if verbose and start_time is not None:

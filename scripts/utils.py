@@ -1,4 +1,4 @@
-import re, os, time, glob
+import re, os, sys, time, glob, resource
 from typing import Any
 import pandas as pd
 from functools import wraps
@@ -166,6 +166,14 @@ def format_runtime(elapsed: float) -> str:
     minutes = int((elapsed % 3600) // 60)
     seconds = int(elapsed % 60)
     return f"{hours}h {minutes}m {seconds}s"
+
+
+def get_peak_memory_mb() -> float:
+    ru_maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # Linux reports ru_maxrss in kilobytes; macOS reports it in bytes
+    if sys.platform == 'darwin':
+        return ru_maxrss / (1024 * 1024)
+    return ru_maxrss / 1024
 
 
 def save_peak_memory(tmp: str, step_name: str, peak_mb: float, batch: int = 0) -> None:
