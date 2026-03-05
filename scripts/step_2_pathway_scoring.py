@@ -1,13 +1,14 @@
 import os
 import sys
 import time
+import resource
 import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import make_scorer
 from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import convert_to_str, define_set_size, save_step_runtime
+from scripts.utils import convert_to_str, define_set_size, save_step_runtime, save_peak_memory
 from scripts.output import load_sizes, get_preprocessed_data, read_gene_sets, save_csv
 
 
@@ -149,6 +150,7 @@ def calculate_pathway_scores(
         regression['effect_size'], regression['most_diff_pseudotime'] = calculate_pseudotime_effect_size(regression, masked_expression, scaled_pseudotime)
 
     save_step_runtime(tmp, 'step2', time.time() - step_start, batch)
+    save_peak_memory(tmp, 'step2', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, batch)
 
     # Save or return results
     if batch:

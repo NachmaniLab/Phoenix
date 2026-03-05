@@ -168,6 +168,28 @@ def format_runtime(elapsed: float) -> str:
     return f"{hours}h {minutes}m {seconds}s"
 
 
+def save_peak_memory(tmp: str, step_name: str, peak_mb: float, batch: int = 0) -> None:
+    suffix = f'_batch{batch}' if batch else ''
+    path = os.path.join(tmp, f'memory_{step_name}{suffix}.txt')
+    with open(path, 'w') as f:
+        f.write(str(peak_mb))
+
+
+def load_peak_memory(tmp: str, step_name: str = '') -> float:
+    pattern = os.path.join(tmp, f'memory_{step_name}*.txt')
+    peak = 0.0
+    for path in glob.glob(pattern):
+        with open(path) as f:
+            peak = max(peak, float(f.read().strip()))
+    return peak
+
+
+def format_memory(peak_mb: float) -> str:
+    if peak_mb >= 1024:
+        return f"{peak_mb / 1024:.2f} GB"
+    return f"{peak_mb:.1f} MB"
+
+
 def show_runtime(func):
     @wraps(func)
     def wrapper(*args, **kwargs):

@@ -1,11 +1,12 @@
 import os
 import time
+import resource
 import pandas as pd
 from sklearn.metrics import make_scorer
 from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL, BackgroundMode
 from scripts.data import get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import define_background, define_batch_size, remove_outliers, save_step_runtime
+from scripts.utils import define_background, define_batch_size, remove_outliers, save_step_runtime, save_peak_memory
 from scripts.output import aggregate_batch_results, background_exists, load_sizes, get_preprocessed_data, save_background_scores
 
 
@@ -191,3 +192,4 @@ def calculate_background_scores(
             )
 
     save_step_runtime(tmp, 'step3', time.time() - step_start, batch)
+    save_peak_memory(tmp, 'step3', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, batch)
