@@ -2,8 +2,8 @@
 
 *Phoenix* is a comprehensive **P**at**H**way **O**ntology **EN**r**I**chment tool in single-cell e**X**pression data, focusing on identifying important pathways that distinguish between cell-types and across pseudo-time.
 It evaluates biological pathways for their predictive power in two key areas: predicting cell-types (discrete values) and estimating pseudo-time (continuous values), using classification and regression random forest models, respectively.
-To assess the significance of the identified pathways, the tool compares the performance of each gene set against a random set of genes of equivalent size.
-Gene annotations that significantly outperform random gene sets are considered particularly relevant within the specific context of the data.
+To assess the significance of the identified pathways, the tool compares the performance of each gene set against a set of genes of equivalent size.
+Gene annotations that significantly outperform other gene sets are considered particularly relevant within the specific context of the data.
 
 
 ## Installation
@@ -42,25 +42,60 @@ To run the tool, execute the `run.py` script with the relevant parameters.
 
 Provide input data:
 
-* `expression`: Path to single-cell raw expression data where rows represent cells and columns represent gene symbols. Accepts either:
-  * CSV file
+* `expression`: Path to single-cell raw expression data with gene symbols. Accepts either:
+  * CSV file where rows represent cells and columns represent gene symbols:
+    |              | GeneA | GeneB | GeneC |
+    |--------------|-------|-------|-------|
+    | Cell_1       | 6     | 0     | 2     |
+    | Cell_2       | 0     | 3     | 1     |
+    | Cell_3       | 1     | 0     | 4     |
   * 10x Genomics MTX directory containing `matrix.mtx`, `features.tsv`, and `barcodes.tsv` (or gzipped files)
-* `reduction`: Path to dimensionality reduction coordinates where rows represent cells and columns include names of the first two components (CSV file), or a dimensionality reduction method: `pca`, `umap` or `tsne`. Default: `umap`.
+
+* `reduction`: Dimensionality reduction coordinates. Accepts either:
+    * Path to dimensionality reduction coordinates where rows represent cells and columns include names of the first two components (CSV file):
+        |              | UMAP_1  | UMAP_2  |
+        |--------------|---------|---------|
+        | Cell_1       | 255.90  | -385.59 |
+        | Cell_2       | 303.10  | -498.71 |
+        | Cell_3       | 233.13  | -316.20 |
+    * Dimensionality reduction method name: `pca`, `umap` or `tsne`. Default: `umap`.
 
 Provide at least one target values:
 
-* `cell_types`: Path to cell-type annotations where rows represent cells and first column presents cell-types (CSV file).
-* `pseudotime`: Path to pseudo-time values where rows represent cells and columns include names of different trajectories (CSV file).
+* `cell_types`: Path to cell-type annotations where rows represent cells and first column presents cell-types (CSV file):
+    |              | cell_type   |
+    |--------------|-------------|
+    | Cell_1       | Granulocyte |
+    | Cell_2       | Monocyte    |
+    | Cell_3       | Erythroid   |
+
+* `pseudotime`: Path to pseudo-time values where rows represent cells and columns include names of different trajectories (CSV file). Cells not belonging to a trajectory should have `NA`.
+  |              | Granulocyte | B_Cell |
+  |--------------|-----------|-----------|
+  | Cell_1       | 0.026     | NA        |
+  | Cell_2       | NA        | 0.312     |
+  | Cell_3       | 0.158     | 0.124        |
 
 Specify a known pathway database for a specific organism, or provide a custom gene set list:
 
-* `organism`: Organism name for pathway annotations.
+* `organism`: Organism name for pathway annotations, such as `human`, `mouse`, `fish`, etc.
 * `pathway_database`: Known pathway database: `go`, `kegg` or `msigdb`.
-* `custom_pathways`: Path to custom gene sets where columns represent set names and rows include gene symbols (CSV file).
+* `custom_pathways`: Path to custom gene sets where columns represent set names and rows include gene symbols (CSV file):
+  | Pathway_A  | Pathway_B  | Pathway_C  |
+  |------------|------------|------------|
+  | GeneA      | GeneC      | GeneB      |
+  | GeneB      | GeneD      | GeneF      |
+  | GeneC      |       | GeneG      |
+  |       |       | GeneH      |
 
 Provide output path:
 
 * `output`: Path to output directory.
+
+### Useful Conversions
+
+To convert **AnnData** (`.h5ad`) or **Seurat** (`.rds`) objects to Phoenix input CSVs, use the scripts in `converters/`. Both scripts export `expression.csv`, `cell_types.csv`, `pseudotime.csv`, and `reduction.csv` as needed. Run with `--help` for all options.
+
 
 ### Additional arguments
 
@@ -78,14 +113,14 @@ Customize feature selection parameters:
 
 Customize prediction model parameters:
 
-* `classification_metric`: Classification score: `accuracy`, `accuracy_balanced`, `f1`, `f1_weighted`, `f1_macro`, `f1_micro`, `f1_weighted_icf` or `recall_weighted_icf`. Default: `f1_weighted_icf`.
-* `regression_metric`: Regression score: `neg_mean_absolute_error`, `neg_mean_squared_error` or `neg_root_mean_squared_error`. Default: `neg_root_mean_squared_error`.
+* `classification_metric`: Classification score such as `accuracy`, `accuracy_balanced`, `f1`, `f1_weighted`, `f1_macro`, `f1_micro`, `f1_weighted_icf` or `recall_weighted_icf`. Default: `f1_weighted_icf`.
+* `regression_metric`: Regression score such as `neg_mean_absolute_error`, `neg_mean_squared_error` or `neg_root_mean_squared_error`. Default: `neg_root_mean_squared_error`.
 * `cross_validation`: Number of cross-validation folds. Default: `10`.
 * `seed`: Seed for reproducibility. Default: `3407`.
 
 Customize background distribution parameters:
 
-* `background_mode`: Strategy for constructing background score distributions used in pathway significance testing. `real` builds backgrounds from scores of real pathways, `random` builds backgrounds from randomly sampled gene sets at predefined sizes, and `auto` chooses automatically based on the size of the gene set database. `real` mode is much faster but requires at least 1,950 gene sets. Default: `auto` (recommended)
+* `background_mode`: Strategy for constructing background score distributions used in pathway significance testing. `real` builds backgrounds from scores of real pathways, `random` builds backgrounds from randomly sampled gene sets at predefined sizes, and `auto` chooses mode automatically based on the size of the gene set database. `real` mode is much faster but requires at least 1,950 gene sets. Default: `auto` (recommended)
 * `repeats`: Size of background distribution. Default: `150`.
 * `distribution`: Type of background distribution: `gamma` or `normal`. Default: `gamma`.
 
@@ -169,6 +204,6 @@ The folder specified in `--output` will include the following upon completion of
     * Per-result plots in the `pathways` folder under `cell_types` and `pseudotime`.
 
 
-## Results
+## Analyses and Results
 
-Our [portal](https://nachmanilab.shinyapps.io/phoenix_results) provides easy access to the results of *Phoenix*, applied to datasets on embryonic development and hematopoietic stem cell differentiation across several organisms.
+We applied *Phoenix* to datasets on embryonic development and hematopoietic stem cell differentiation across several organisms. The commands used to reproduce the analyses from the paper are available in [`analysis.sh`](analysis.sh), and our [portal](https://nachmanilab.shinyapps.io/phoenix_results) provides easy access to the results.

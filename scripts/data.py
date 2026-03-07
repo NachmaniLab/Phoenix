@@ -82,6 +82,8 @@ def preprocess_data(
 
     # Exclude targets
     if cell_types is not None:
+        if not expression.index.isin(cell_types.index).all():
+            raise ValueError("Cell type annotations must be provided for all cells in expression data.")
         cell_types = cell_types.loc[expression.index]
         exclude_cell_types = [cell_type for cell_type in exclude_cell_types
                               if cell_type in cell_types[CELL_TYPE_COL].tolist()] if exclude_cell_types else []
@@ -92,6 +94,8 @@ def preprocess_data(
             expression = expression.loc[cell_types.index]
 
     if pseudotime is not None:
+        if not expression.index.isin(pseudotime.index).all():
+            raise ValueError("Pseudotime annotations must be provided for all cells in expression data.")
         pseudotime = pseudotime.loc[expression.index]
         exclude_lineages = [lineage for lineage in exclude_lineages
                             if lineage in pseudotime.columns] if exclude_lineages else []
@@ -103,6 +107,9 @@ def preprocess_data(
     # Reduce dimensions
     if isinstance(reduction, str):
         reduction = reduce_dimension(expression, reduction, seed)
+    else:
+        if not expression.index.isin(reduction.index).all():
+            raise ValueError("Reduction coordinates must be provided for all cells in expression data.")
     reduction = reduction.loc[expression.index]
 
     # Save preprocessed data
