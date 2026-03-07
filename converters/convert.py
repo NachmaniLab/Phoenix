@@ -4,14 +4,14 @@ Conversion script for AnnData (.h5ad) objects to Phoenix input format.
 Exports expression matrix, cell-type annotations, pseudotime values,
 and dimensionality reduction coordinates as CSV files compatible with Phoenix.
 
-Usage:
-    python convert.py \
+Usage (from the repository root):
+    python -m converters.convert \
         --input my_data.h5ad \
         --output phoenix_input/ \
         --cell_type_key cell_type \
         --reduction_key X_umap
 
-Run `python convert.py --help` for all options.
+Run `python -m converters.convert --help` for all options.
 """
 
 import argparse
