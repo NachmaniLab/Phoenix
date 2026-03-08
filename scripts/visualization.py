@@ -547,10 +547,9 @@ def plot(
         if target_data is None or results is None:
             continue
 
-        plot_volcano(results, title=result_type, output=output)
+        plot_volcano(results, title=target_type.replace('-', '_'), output=output)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
-        save_csv(data, f'p_values_{target_type}', output)
 
         heatmap_pathways, exp_plot_pathways = [], []
 
@@ -562,7 +561,6 @@ def plot(
 
         else:  # plot interesting pathways
             size = max(MAP_SIZE // data.shape[1], 1)
-            # heatmap_pathways.extend(get_top_sum_pathways(data, ascending=True, size=3))
             non_unique_targets = []
             for target in data.columns:
                 if target != ALL_CELLS:
@@ -573,14 +571,11 @@ def plot(
                     for pathway_name in pathway_names:
                         exp_plot_pathways.append((target, pathway_name))
                         plot_experiment(output, target, pathway_name, target_type, results, target_data, background_mode, args, expression, reduction)
-            # heatmap_pathways.extend(get_top_sum_pathways(data, ascending=False, size=3))
             data = data.drop(non_unique_targets, axis=1)
 
-        if len(heatmap_pathways) < data.shape[0]:
-            plot_p_values(data, cluster_rows=True, title=f'{target_type} Prediction using All Pathways', output=output)
-        plot_p_values(data.loc[heatmap_pathways], title=f'{target_type} Prediction', output=output)
+        plot_p_values(data.loc[heatmap_pathways], title=f'{target_type.replace("-", "_")} Prediction', output=output)
         
-        save_csv(pd.DataFrame(exp_plot_pathways, columns=[TARGET_COL, 'pathway']), title=f'top_{target_type}_pathways', output_path=output, keep_index=False)
+        save_csv(pd.DataFrame(exp_plot_pathways, columns=[TARGET_COL, 'pathway']), title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
 
         del data
         del results

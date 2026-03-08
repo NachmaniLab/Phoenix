@@ -191,17 +191,17 @@ python plot.py \
 
 The folder specified in `--output` will include the following upon completion of the run:
 
-* **Preprocessed data**, including `expression.csv`, `reduction.csv`,   `cell_types.csv`, `pseudotime.csv`, `gene_sets.csv`, and `targets.png`.
-* A `cache` folder containing saved background scores, which can be reused for future similar runs.
-* A `tmp` folder with per-batch results and reports.
-* **Full results**, comprising:
-    * Tables of all gene annotation results: `cell_type_classification.csv` and `pseudotime_regression.csv`.
-    * Corresponding p-value matrices: `p_values_celltypes.csv` and `p_values_pseudotime.csv`.
-    * Plots: `p_values_celltypes_prediction_using_all_pathways.png` and `p_values_pseudotime_prediction_using_all_pathways.png`.
-* **Top results**, consisting of:
-    * Lists of top gene annotations for each target: `top_celltypes_pathways.csv` and `top_pseudotime_pathways.csv`.
-    * Corresponding p-value plots: `p_values_celltypes_prediction.png` and `p_values_pseudotime_prediction.png`.
-    * Per-result plots in the `pathways` folder under `cell_types` and `pseudotime`.
+* **Main results:**
+    * Tables of all gene annotation results: `cell_type_classification.csv` and `pseudotime_regression.csv`
+    * Volcano plots: `volcano_cell_types.png` and `volcano_pseudotime.png`
+* **Top results:**
+    * Lists of top gene annotations for each target: `top_cell_types_pathways.csv` and `top_pseudotime_pathways.csv`
+    * Target-specific top p-value plots: `p_values_cell_types_prediction.png` and `p_values_pseudotime_prediction.png`
+    * Per-result plots in the `pathways` folder under `cell_types` and `pseudotime`
+* **Preprocessed data:** `expression.csv`, `reduction.csv`,   `cell_types.csv`, `pseudotime.csv`, `gene_sets.csv`, and `targets.png`
+* **Run configuration**: `run_args.json` and `background_sizes.json`
+* A `cache` folder containing saved background scores, which can be reused for future similar runs
+* A `tmp` folder with per-batch results and reports
 
 
 ## Analyses and Results

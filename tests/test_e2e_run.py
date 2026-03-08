@@ -146,10 +146,16 @@ class E2ERunTest(Test):
             'reduction.csv',
             'gene_sets.csv',
             f'{background_mode.name.lower()}_background_sizes.json',
+            'run_args.json',
             'cell_type_classification.csv',
             'pseudotime_regression.csv',
-            'p_values_celltypes.csv',
-            'p_values_pseudotime.csv',
+        ]
+
+        output_plots = [
+            'volcano_cell_types.png',
+            'volcano_pseudotime.png',
+            'p_values_cell_types_prediction.png',
+            'p_values_pseudotime_prediction.png',
         ]
 
         for file_name in output_files:
@@ -159,6 +165,11 @@ class E2ERunTest(Test):
                 self.assertTrue(not pd.read_csv(path).empty, msg=f"{file_name} is empty")
             elif file_name.endswith('.json'):
                 self.assertTrue(os.path.getsize(path) > 0, msg=f"{file_name} is empty")
+
+        for file_name in output_plots:
+            path = os.path.join(output, file_name)
+            self.assertTrue(os.path.exists(path), msg=f"{file_name} is missing")
+            self.assertTrue(os.path.getsize(path) > 0, msg=f"{file_name} is empty")
 
         for dir in ['cell_types', 'pseudotime']:
             path = os.path.join(output, 'pathways', dir)
@@ -223,8 +234,8 @@ class E2ERunTest(Test):
         save_args(argparse.Namespace(**args), args['output'])
         run_tool(**args)
 
-        classification: pd.DataFrame = read_results('cell_type_classification', output)
-        regression: pd.DataFrame = read_results('pseudotime_regression', output)
+        classification: pd.DataFrame = read_results('cell_type_classification', output)  # type: ignore[annotation-unchecked]
+        regression: pd.DataFrame = read_results('pseudotime_regression', output)  # type: ignore[annotation-unchecked]
 
         pathways = read_gene_sets(output)
         for pathway in pathways:
