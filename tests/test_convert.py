@@ -16,13 +16,44 @@ from scripts.data import preprocess_data
 from scripts.consts import SEED
 
 
+def _find_rscript() -> str:
+    """Return the path to Rscript, searching common install locations if not on PATH."""
+    import shutil
+    import glob
+
+    # Try PATH first
+    rscript = shutil.which('Rscript')
+    if rscript:
+        return rscript
+
+    # Common locations to search
+    candidates: list[str] = []
+    if os.name == 'nt':  # Windows
+        candidates = glob.glob(r'C:\Program Files\R\R-*\bin\Rscript.exe')
+        candidates += glob.glob(r'C:\Program Files\R\R-*\bin\x64\Rscript.exe')
+    else:  # macOS / Linux
+        candidates = glob.glob('/usr/local/lib/R/bin/Rscript')
+        candidates += glob.glob('/usr/lib/R/bin/Rscript')
+        candidates += glob.glob('/opt/homebrew/bin/Rscript')
+        candidates += glob.glob('/opt/R/*/bin/Rscript')
+
+    # Pick latest version (sort descending so R-4.x > R-3.x)
+    candidates = sorted(candidates, reverse=True)
+    return candidates[0] if candidates else ''
+
+
 def _r_available() -> bool:
     """Check if Rscript and Seurat are available."""
+    rscript = _find_rscript()
+    if not rscript:
+        return False
     try:
         result = subprocess.run(
-            ['Rscript', '-e', 'library(Seurat); library(optparse)'],
+            [rscript, '-e', 'library(Seurat); library(optparse)'],
             capture_output=True, timeout=30,
         )
+        if result.returncode != 0:
+            print(f'Rscript found but failed to load Seurat/optparse:\n{result.stderr.decode("utf-8", errors="replace")}')
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
@@ -102,12 +133,14 @@ class TestAnnDataConversion(Test):
 
     def test_reduction_explicit_key(self) -> None:
         red = get_reduction(self.adata, 'X_umap', verbose=False)
+        assert red is not None
         self.assertEqual(red.shape, (30, 2))
         self.assertListEqual(list(red.columns), ['umap_1', 'umap_2'])
 
     def test_reduction_auto_detect(self) -> None:
         red = get_reduction(self.adata, key=None, verbose=False)
         self.assertIsNotNone(red)
+        assert red is not None
         self.assertEqual(red.shape, (30, 2))
         self.assertIn('umap', red.columns[0])
 
@@ -153,6 +186,7 @@ class TestAnnDataConversion(Test):
         pt.to_csv(os.path.join(self.tmpdir, 'pseudotime.csv'))
 
         red = get_reduction(self.adata, 'X_umap', verbose=False)
+        assert red is not None
         red.to_csv(os.path.join(self.tmpdir, 'reduction.csv'))
 
         # Read back through Phoenix's own reader
@@ -164,6 +198,9 @@ class TestAnnDataConversion(Test):
         )
 
         self.assertEqual(expression.shape, (30, 50))
+        assert cell_types is not None
+        assert pseudotime is not None
+        assert isinstance(reduction, pd.DataFrame)
         self.assertEqual(cell_types.shape, (30, 1))
         self.assertEqual(pseudotime.shape, (30, 1))
         self.assertEqual(reduction.shape, (30, 2))
@@ -231,7 +268,7 @@ class TestSeuratConversion(Test):
         with open(r_script, 'w') as f:
             f.write(_CREATE_SEURAT_R)
         result = subprocess.run(
-            ['Rscript', r_script, self.rds_path],
+            [_find_rscript(), r_script, self.rds_path],
             capture_output=True, text=True, timeout=120,
         )
         if result.returncode != 0:
@@ -242,7 +279,7 @@ class TestSeuratConversion(Test):
 
     def _run_convert(self, extra_args: list[str] | None = None) -> subprocess.CompletedProcess:
         cmd = [
-            'Rscript', CONVERT_R_PATH,
+            _find_rscript(), CONVERT_R_PATH,
             '--input', self.rds_path,
             '--output', self.out_dir,
         ]
@@ -330,6 +367,9 @@ class TestSeuratConversion(Test):
         )
 
         self.assertEqual(expression.shape, (30, 50))
+        assert cell_types is not None
+        assert pseudotime is not None
+        assert isinstance(reduction, pd.DataFrame)
         self.assertEqual(cell_types.shape, (30, 1))
         self.assertEqual(pseudotime.shape, (30, 1))
         self.assertEqual(reduction.shape, (30, 2))
