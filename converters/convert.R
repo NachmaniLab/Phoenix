@@ -6,7 +6,7 @@
 # and dimensionality reduction coordinates as CSV files compatible with Phoenix.
 #
 # Usage:
-#   Rscript convert.R \
+#   Rscript converters/convert.R \
 #       --input my_data.rds \
 #       --output phoenix_input/ \
 #       --cell_type_key cell_type \
