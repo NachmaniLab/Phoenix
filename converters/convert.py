@@ -117,7 +117,7 @@ def get_pseudotime(adata: ad.AnnData, keys: list[str], verbose: bool = True) -> 
     return pt
 
 
-def get_reduction(adata: ad.AnnData, key: str | None, verbose: bool = True) -> pd.DataFrame:
+def get_reduction(adata: ad.AnnData, key: str | None, verbose: bool = True) -> pd.DataFrame | None:
     """Extract dimensionality reduction coordinates (first 2 components)."""
     if key is not None:
         if key not in adata.obsm:
@@ -135,7 +135,7 @@ def get_reduction(adata: ad.AnnData, key: str | None, verbose: bool = True) -> p
             if verbose:
                 print('No dimensionality reduction found in adata.obsm — skipping. '
                       'Phoenix will compute one automatically using --reduction.')
-            return None  # type: ignore[return-value]
+            return None
 
     coords = adata.obsm[key][:, :2]
     method = key.replace('X_', '')
