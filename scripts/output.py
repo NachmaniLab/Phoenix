@@ -131,14 +131,16 @@ def _read_expression(expression_path: str) -> pd.DataFrame:
     )
 
 
-def read_raw_data(expression: str, cell_types: str | None, pseudotime: str | None, reduction: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def read_raw_data(expression: str, cell_types: str | None, pseudotime: str | None, reduction: str) -> tuple[pd.DataFrame, pd.DataFrame | None, pd.DataFrame | None, pd.DataFrame | str]:
     expression = _read_expression(expression)
-    cell_types = read_csv(cell_types).loc[expression.index] if cell_types else None
     if cell_types is not None:
-        cell_types = cell_types.rename(columns={cell_types.columns[0]: CELL_TYPE_COL})
-    pseudotime = read_csv(pseudotime).loc[expression.index] if pseudotime else None 
+        cell_types = read_csv(cell_types)
+        if len(cell_types.columns) != 1:  # type: ignore[union-attr]
+            raise ValueError("Cell types file should have an index column with cell barcodes and a single column with cell type annotations.")
+        cell_types = cell_types.rename(columns={cell_types.columns[0]: CELL_TYPE_COL})  # type: ignore[union-attr]
+    pseudotime = read_csv(pseudotime) if pseudotime is not None else None 
     if os.path.exists(reduction):
-        reduction = read_csv(reduction).loc[expression.index]
+        reduction = read_csv(reduction)
     return expression, cell_types, pseudotime, reduction
 
 
