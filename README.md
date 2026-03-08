@@ -69,11 +69,11 @@ Provide at least one target values:
     | Cell_2       | Monocyte    |
     | Cell_3       | Erythroid   |
 
-* `pseudotime`: Path to pseudo-time values where rows represent cells and columns include names of different trajectories (CSV file). Cells not belonging to a trajectory should have `NA`.
+* `pseudotime`: Path to pseudo-time values where rows represent cells and columns include names of different trajectories (CSV file). Cells not belonging to a trajectory should be blank or have `NA`.
   |              | Granulocyte | B_Cell |
   |--------------|-----------|-----------|
-  | Cell_1       | 0.026     | NA        |
-  | Cell_2       | NA        | 0.312     |
+  | Cell_1       | 0.026     |         |
+  | Cell_2       |         | 0.312     |
   | Cell_3       | 0.158     | 0.124        |
 
 Specify a known pathway database for a specific organism, or provide a custom gene set list:
