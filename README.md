@@ -94,7 +94,7 @@ Provide output path:
 
 ### Useful Conversions
 
-To convert **AnnData** (`.h5ad`) or **Seurat** (`.rds`) objects to Phoenix input CSVs, use the scripts in `converters/`. Both scripts export `expression.csv`, `cell_types.csv`, `pseudotime.csv`, and `reduction.csv` as needed. Run with `--help` for all options.
+To convert **AnnData** (`.h5ad`) or **Seurat** (`.rds`) objects to Phoenix input CSVs, use the scripts in [`converters/`](converters/). Both scripts export `expression.csv`, `cell_types.csv`, `pseudotime.csv`, and `reduction.csv` as needed. Run with `--help` for all options.
 
 
 ### Additional arguments
