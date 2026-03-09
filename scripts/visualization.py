@@ -573,7 +573,8 @@ def plot(
                         plot_experiment(output, target, pathway_name, target_type, results, target_data, background_mode, args, expression, reduction)
             data = data.drop(non_unique_targets, axis=1)
 
-        plot_p_values(data.loc[heatmap_pathways], title=f'{target_type.replace("-", "_")} Prediction', output=output)
+        if heatmap_pathways:
+            plot_p_values(data.loc[heatmap_pathways], title=f'{target_type.replace("-", "_")} Prediction', output=output)
         
         save_csv(pd.DataFrame(exp_plot_pathways, columns=[TARGET_COL, 'pathway']), title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
 
