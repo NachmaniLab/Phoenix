@@ -1,7 +1,7 @@
 import os
 import tempfile
 import unittest
-from scripts.consts import SIZES, BackgroundMode, REPEATS
+from scripts.consts import SIZES, BackgroundMode, REAL_MODE_THRESHOLD
 from scripts.backgrounds import (
     set_background_mode,
     define_sizes_in_random_mode,
@@ -14,12 +14,12 @@ from tests.interface import Test
 class BackgroundModeTest(Test):
 
     def test_set_background_mode_auto_returns_real_when_enough_gene_sets(self):
-        gene_set_len = REPEATS * len(SIZES)  # exactly at threshold
+        gene_set_len = REAL_MODE_THRESHOLD  # exactly at threshold
         result = set_background_mode(BackgroundMode.AUTO, gene_set_len)
         self.assertEqual(result, BackgroundMode.REAL)
 
     def test_set_background_mode_auto_returns_random_when_not_enough_gene_sets(self):
-        gene_set_len = REPEATS * len(SIZES) - 1  # just below threshold
+        gene_set_len = REAL_MODE_THRESHOLD - 1  # just below threshold
         result = set_background_mode(BackgroundMode.AUTO, gene_set_len)
         self.assertEqual(result, BackgroundMode.RANDOM)
 

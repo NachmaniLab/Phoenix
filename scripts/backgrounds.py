@@ -1,13 +1,12 @@
 import numpy as np
-from scripts.consts import SIZES, REPEATS, BackgroundMode
+from scripts.consts import BackgroundMode, REAL_MODE_THRESHOLD
 from scripts.utils import define_set_size
 from scripts.output import save_sizes
 
 
 def set_background_mode(background_mode: BackgroundMode, gene_set_len: int) -> BackgroundMode:
     if background_mode == BackgroundMode.AUTO:
-        # By definition, we use our defined REPEATS and SIZES and not provided args
-        return BackgroundMode.REAL if gene_set_len >= REPEATS * len(SIZES) else BackgroundMode.RANDOM
+        return BackgroundMode.REAL if gene_set_len >= REAL_MODE_THRESHOLD else BackgroundMode.RANDOM
     return background_mode
 
 

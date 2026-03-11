@@ -12,6 +12,7 @@ class BackgroundMode(Enum):
 
 
 SIZES = [2, 5, 10, 15, 20, 25, 30, 40, 60, 80, 100, 150, 200, 600]
+REAL_MODE_THRESHOLD = 2000
 
 SEED = 3407
 
