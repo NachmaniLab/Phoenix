@@ -47,7 +47,7 @@ class SizeDefinitionTest(Test):
         )
         assert len(sizes) <= len(SIZES)
         assert all(s in SIZES for s in sizes)
-        assert sizes == [5, 10, 20, 40, 60, 200]
+        assert sizes == [5, 15, 20, 60, 80, 600]
 
     def test_define_sizes_in_real_mode(self):
         sizes = define_sizes_in_real_mode(
