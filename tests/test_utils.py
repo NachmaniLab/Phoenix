@@ -16,12 +16,14 @@ class UtilTest(Test):
     
     def test_set_size_definition(self):
         self.assertEqual(self.define_set_size(80, 0.25, 10), 20)
-        self.assertEqual(self.define_set_size(100, 0.5, 1), 40)  # 50 would be exact, but 40 is the closest
+        self.assertEqual(self.define_set_size(100, 0.5, 1), 60)  # 50 would be exact, but 60 is the closest
         self.assertEqual(self.define_set_size(20, 0.5, 15), 15)  # min_set_size makes it 15 instead of 10
-        self.assertEqual(self.define_set_size(20, 0.5, 16), 15)  # min_set_size makes it 16 instead of 10, but 15 is the closest
+        self.assertEqual(self.define_set_size(20, 0.5, 16), 20)  # min_set_size makes it 16 instead of 10, but 20 is the closest
         self.assertEqual(self.define_set_size(20, 0.5, 40), 20)  # min_set_size turns 10 into 40 but 40 is bigger than set_len so set_len is selected
-        self.assertEqual(self.define_set_size(8, 0.5, 10), 5)  # min_set_size turns 4 into 10 but 10 is bigger than set_len so set_len is selected, but since 8 is not in SIZES, 5 is selected
-        self.assertEqual(self.define_set_size(500, 0.5, 10), 200)  # as 250 is not in SIZES
+        self.assertEqual(self.define_set_size(8, 0.5, 10), 10)  # min_set_size turns 4 into 10 but 10 is bigger than set_len so set_len is selected, but since 8 is not in SIZES, 10 is selected
+        self.assertEqual(self.define_set_size(2000, 0.5, 10), 500)  # as 1000 is not in SIZES
+        self.assertEqual(self.define_set_size(600, 1.0, 10), 500)  # as 600 is not in SIZES
+        self.assertEqual(self.define_set_size(600, 1.0, 550), 500)  # as 600 is not in SIZES and also no 550
 
     def test_num_batches_definition(self):
         self.assertEqual(define_batch_size(9, 3), 3)
