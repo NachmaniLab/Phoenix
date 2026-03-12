@@ -7,7 +7,7 @@ def run_setup_cmd(args: dict, tmp: str | None = None) -> str:
         func='setup',
         script='step_1_setup',
         args=args,
-        mem='15G',
+        mem='30G',
         time='0:15:0',
         report_path=tmp,
     )
