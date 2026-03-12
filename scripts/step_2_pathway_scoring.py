@@ -4,10 +4,10 @@ import time
 import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import make_scorer
-from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
+from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL, BackgroundMode
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import convert_to_str, define_set_size, get_peak_memory_mb, save_step_runtime, save_peak_memory
+from scripts.utils import convert_to_str, define_feature_size, define_set_size, get_peak_memory_mb, save_step_runtime, save_peak_memory
 from scripts.output import load_sizes, get_preprocessed_data, read_gene_sets, save_csv
 
 
@@ -39,6 +39,7 @@ def calculate_pathway_scores(
         pseudotime: pd.DataFrame | str = 'pseudotime',
         gene_sets: dict[str, list[str]] | str = 'gene_sets',
         sizes: list[int] | None = None,
+        background_mode: BackgroundMode | None = None,
         verbose: bool = True,
     ) -> None | tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -57,7 +58,8 @@ def calculate_pathway_scores(
     gene_sets = read_gene_sets(output, gene_sets)
     batch_gene_sets = get_gene_set_batch(gene_sets, batch, processes)
 
-    sizes = load_sizes(output)[0] if sizes is None else sizes
+    if sizes is None or background_mode is None:
+        sizes, background_mode = load_sizes(output)
 
     classification_results, regression_results = [], []
     all_cell_types, all_lineages = get_cell_types(cell_types), get_lineages(scaled_pseudotime)
@@ -84,6 +86,10 @@ def calculate_pathway_scores(
             sys.stdout.flush()
 
         set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=sizes)
+        if background_mode == BackgroundMode.RANDOM:
+            feature_size = define_feature_size(len(gene_set), set_fraction, min_set_size)
+        else:
+            feature_size = set_size  # very similar to set_size as there are many sizes in real mode
         
         # Cell-type classification
         for cell_type in all_cell_types:
@@ -95,7 +101,7 @@ def calculate_pathway_scores(
                 seed=seed,
                 gene_set=gene_set,
                 cv=classification_cv,
-                set_size=set_size,
+                set_size=feature_size,
                 feature_selection=feature_selection,
                 cell_types=cell_types,
                 cell_type=cell_type,
@@ -120,7 +126,7 @@ def calculate_pathway_scores(
                 seed=seed,
                 gene_set=gene_set,
                 cv=regression_cv,
-                set_size=set_size,
+                set_size=feature_size,
                 feature_selection=feature_selection,
                 scaled_pseudotime=scaled_pseudotime,
                 lineage=lineage,
