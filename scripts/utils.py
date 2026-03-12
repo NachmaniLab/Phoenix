@@ -98,11 +98,16 @@ def define_background(
     return background
 
 
-def define_set_size(set_len: int, set_fraction: float, min_set_size: int, all_sizes: list[int]) -> int:
+def define_set_size(set_len: int, set_fraction: float, min_set_size: int, all_sizes: list[int], below: bool = True) -> int:
     # clamp target size to [min_set_size, set_len]
     target = int(set_len * set_fraction)
     target = max(target, min_set_size)
     target = min(target, set_len)
+
+    if below:
+        # largest allowed size <= target (max(x for x in all_sizes if x <= set_size))
+        i = bisect_right(all_sizes, target) - 1
+        return all_sizes[i] if i >= 0 else min(all_sizes[0], set_len)
 
     # smallest allowed size >= target (min(x for x in all_sizes if x >= target))
     i = bisect_right(all_sizes, target - 1)

@@ -10,7 +10,7 @@ from scripts.step_2_pathway_scoring import calculate_pathway_scores
 from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
 from scripts.consts import (
     CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, SIZES,
-    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED
+    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED, BackgroundMode
 )
 from scripts.output import aggregate_batch_results
 
@@ -40,6 +40,7 @@ class CalculatePathwayScoresTest(Test):
             'pseudotime': self.pseudotime,
             'gene_sets': self.gene_sets,
             'sizes': sizes,
+            'background_mode': BackgroundMode.REAL,
             'feature_selection': FEATURE_SELECTION,
             'min_set_size': SIZES[0],
             'classification_metric': CLASSIFICATION_METRIC,

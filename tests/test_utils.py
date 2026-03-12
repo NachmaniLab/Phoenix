@@ -12,7 +12,7 @@ class UtilTest(Test):
 
     def setUp(self) -> None:
         self.gene_sets = {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']}
-        self.define_set_size = lambda set_len, set_fraction, min_set_size: define_set_size(set_len, set_fraction, min_set_size, all_sizes=SIZES)
+        self.define_set_size = lambda set_len, set_fraction, min_set_size: define_set_size(set_len, set_fraction, min_set_size, all_sizes=SIZES, below=False)
     
     def test_set_size_definition(self):
         self.assertEqual(self.define_set_size(80, 0.25, 10), 20)

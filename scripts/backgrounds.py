@@ -13,7 +13,7 @@ def set_background_mode(background_mode: BackgroundMode, gene_set_len: int) -> B
 def define_sizes_in_random_mode(gene_sets: dict[str, list[str]], set_fraction: float, min_set_size: int, random_sizes: list[int]) -> list[int]:
     sizes_used: set[int] = set()
     for genes in gene_sets.values():
-        size = define_set_size(len(genes), set_fraction, min_set_size, all_sizes=random_sizes)
+        size = define_set_size(len(genes), set_fraction, min_set_size, all_sizes=random_sizes, below=False)
         sizes_used.add(size)
     return sorted(sizes_used)
 

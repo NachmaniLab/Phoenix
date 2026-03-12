@@ -4,7 +4,7 @@ import time
 import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import make_scorer
-from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
+from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL, BackgroundMode
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
 from scripts.utils import convert_to_str, define_set_size, get_peak_memory_mb, save_step_runtime, save_peak_memory
@@ -39,6 +39,7 @@ def calculate_pathway_scores(
         pseudotime: pd.DataFrame | str = 'pseudotime',
         gene_sets: dict[str, list[str]] | str = 'gene_sets',
         sizes: list[int] | None = None,
+        background_mode: BackgroundMode | None = None,
         verbose: bool = True,
     ) -> None | tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -46,6 +47,9 @@ def calculate_pathway_scores(
     """
     step_start = time.time()
     batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or 0 for a single batch
+
+    if sizes is None or background_mode is None:
+        sizes, background_mode = load_sizes(output)
 
     expression = get_preprocessed_data(expression, output)
     cell_types = get_preprocessed_data(cell_types, output)
@@ -56,8 +60,6 @@ def calculate_pathway_scores(
 
     gene_sets = read_gene_sets(output, gene_sets)
     batch_gene_sets = get_gene_set_batch(gene_sets, batch, processes)
-
-    sizes = load_sizes(output)[0] if sizes is None else sizes
 
     classification_results, regression_results = [], []
     all_cell_types, all_lineages = get_cell_types(cell_types), get_lineages(scaled_pseudotime)
@@ -83,7 +85,7 @@ def calculate_pathway_scores(
             print(f'\n{logger}Pathway {i + 1}/{len(batch_gene_sets)}: {set_name}', flush=True)
             sys.stdout.flush()
 
-        set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=sizes)
+        set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=sizes, below=True if background_mode == BackgroundMode.REAL else False)
         
         # Cell-type classification
         for cell_type in all_cell_types:
