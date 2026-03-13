@@ -86,10 +86,7 @@ def calculate_pathway_scores(
             sys.stdout.flush()
 
         set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=sizes)
-        if background_mode == BackgroundMode.RANDOM:
-            feature_size = define_feature_size(len(gene_set), set_fraction, min_set_size)
-        else:
-            feature_size = set_size  # very similar to set_size as there are many sizes in real mode
+        feature_size = define_feature_size(len(gene_set), set_fraction, min_set_size)
         
         # Cell-type classification
         for cell_type in all_cell_types:
