@@ -39,7 +39,6 @@ def calculate_pathway_scores(
         pseudotime: pd.DataFrame | str = 'pseudotime',
         gene_sets: dict[str, list[str]] | str = 'gene_sets',
         sizes: list[int] | None = None,
-        background_mode: BackgroundMode | None = None,
         verbose: bool = True,
     ) -> None | tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -58,8 +57,7 @@ def calculate_pathway_scores(
     gene_sets = read_gene_sets(output, gene_sets)
     batch_gene_sets = get_gene_set_batch(gene_sets, batch, processes)
 
-    if sizes is None or background_mode is None:
-        sizes, background_mode = load_sizes(output)
+    sizes = load_sizes(output)[0] if sizes is None else sizes
 
     classification_results, regression_results = [], []
     all_cell_types, all_lineages = get_cell_types(cell_types), get_lineages(scaled_pseudotime)

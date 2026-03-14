@@ -39,7 +39,6 @@ class CalculatePathwayScoresTest(Test):
             'cell_types': self.cell_types,
             'pseudotime': self.pseudotime,
             'gene_sets': self.gene_sets,
-            'background_mode': BackgroundMode.REAL,
             'sizes': sizes,
             'feature_selection': FEATURE_SELECTION,
             'min_set_size': SIZES[0],

@@ -92,7 +92,7 @@ def run_tool(
             cross_validation, seed, processes,
             output, tmp, effect_size_threshold,
             expression, cell_types, pseudotime,
-            gene_sets, sizes, background_mode, verbose=verbose
+            gene_sets, sizes, verbose=verbose
         )  # type: ignore[misc]
         calculate_background_scores(
             classification_metric, regression_metric,
