@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scripts.consts import ALL_CELLS, SIZES, BackgroundMode
 from tests.interface import Test
-from scripts.utils import define_set_size, define_batch_size, order_gene_sets_by_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime, save_peak_memory, load_peak_memory, format_memory, _HAS_RESOURCE
+from scripts.utils import define_feature_size, define_set_size, define_batch_size, order_gene_sets_by_size, convert_to_str, convert_from_str, enum2str, str2enum, remove_outliers, correct_effect_size, save_step_runtime, load_total_runtime, format_runtime, save_peak_memory, load_peak_memory, format_memory, _HAS_RESOURCE
 
 
 class UtilTest(Test):
@@ -14,6 +14,12 @@ class UtilTest(Test):
         self.gene_sets = {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']}
         self.define_set_size = lambda set_len, set_fraction, min_set_size: define_set_size(set_len, set_fraction, min_set_size, all_sizes=SIZES)
     
+    def test_feature_size_definition(self) -> None:
+        self.assertEqual(define_feature_size(80, 0.25, 10), 20)
+        self.assertEqual(define_feature_size(100, 0.5, 1), 50)  # exact, not snapped to 40
+        self.assertEqual(define_feature_size(20, 0.5, 15), 15)  # min_set_size makes it 15 instead of 10
+        self.assertEqual(define_feature_size(20, 0.5, 40), 20)  # min_set_size turns 10 into 40 but capped to set_len
+
     def test_set_size_definition(self):
         self.assertEqual(self.define_set_size(80, 0.25, 10), 20)
         self.assertEqual(self.define_set_size(100, 0.5, 1), 40)  # 50 would be exact, but 40 is the closest

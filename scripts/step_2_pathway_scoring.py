@@ -7,7 +7,7 @@ from sklearn.metrics import make_scorer
 from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL
 from scripts.data import calculate_cell_type_effect_size, calculate_pseudotime_effect_size, get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
-from scripts.utils import convert_to_str, define_set_size, get_peak_memory_mb, save_step_runtime, save_peak_memory
+from scripts.utils import convert_to_str, define_feature_size, define_set_size, get_peak_memory_mb, save_step_runtime, save_peak_memory
 from scripts.output import load_sizes, get_preprocessed_data, read_gene_sets, save_csv
 
 
@@ -84,6 +84,7 @@ def calculate_pathway_scores(
             sys.stdout.flush()
 
         set_size = define_set_size(len(gene_set), set_fraction, min_set_size, all_sizes=sizes)
+        feature_size = define_feature_size(len(gene_set), set_fraction, min_set_size)
         
         # Cell-type classification
         for cell_type in all_cell_types:
@@ -95,7 +96,7 @@ def calculate_pathway_scores(
                 seed=seed,
                 gene_set=gene_set,
                 cv=classification_cv,
-                set_size=set_size,
+                set_size=feature_size,
                 feature_selection=feature_selection,
                 cell_types=cell_types,
                 cell_type=cell_type,
@@ -120,7 +121,7 @@ def calculate_pathway_scores(
                 seed=seed,
                 gene_set=gene_set,
                 cv=regression_cv,
-                set_size=set_size,
+                set_size=feature_size,
                 feature_selection=feature_selection,
                 scaled_pseudotime=scaled_pseudotime,
                 lineage=lineage,
