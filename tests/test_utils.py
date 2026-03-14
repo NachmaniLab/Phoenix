@@ -14,7 +14,7 @@ class UtilTest(Test):
         self.gene_sets = {'set1': ['gene1'], 'set2': ['gene2'], 'set3': ['gene3'], 'set4': ['gene4'], 'set5': ['gene5'], 'set6': ['gene6']}
         self.define_set_size = lambda set_len, set_fraction, min_set_size: define_set_size(set_len, set_fraction, min_set_size, all_sizes=SIZES)
     
-    def test_feature_size_definition(self):
+    def test_feature_size_definition(self) -> None:
         self.assertEqual(define_feature_size(80, 0.25, 10), 20)
         self.assertEqual(define_feature_size(100, 0.5, 1), 50)  # exact, not snapped to 40
         self.assertEqual(define_feature_size(20, 0.5, 15), 15)  # min_set_size makes it 15 instead of 10
