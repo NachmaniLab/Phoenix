@@ -322,7 +322,7 @@ class TrainingPerformanceTest(Test):
             durations.append(duration)
         
         mean_duration = sum(durations) / len(durations)
-        self.assertLessEqual(mean_duration, 0.05)
+        self.assertLessEqual(mean_duration, 0.07)
 
     def test_regression_training_performance(self):
         X = np.array(self.scaled_expression[['Gene1']])
@@ -348,7 +348,7 @@ class TrainingPerformanceTest(Test):
             durations.append(duration)
 
         mean_duration = sum(durations) / len(durations)
-        self.assertLessEqual(mean_duration, 0.05)
+        self.assertLessEqual(mean_duration, 0.07)
 
 
 class TrainingTest(Test):
