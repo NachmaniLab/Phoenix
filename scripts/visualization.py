@@ -334,7 +334,7 @@ def plot_volcano(
     target_col: str = TARGET_COL,
     effect_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
-    fdr_thresh: float = 0.05,
+    fdr_thresh: float = THRESHOLD,
     effect_thresh: float = 1,
     ncols: int = 5,
     figsize_per_panel=(3, 3),
