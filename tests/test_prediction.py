@@ -327,7 +327,7 @@ class TrainingPerformanceTest(Test):
     def test_regression_training_performance(self):
         X = np.array(self.scaled_expression[['Gene1']])
         predictor = REGRESSION_PREDICTOR
-        predictor_args = REGRESSION_PREDICTOR_ARGS
+        predictor_args = REGRESSION_PREDICTOR_ARGS.copy()
         predictor_args['n_jobs'] = 1
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)

@@ -69,6 +69,7 @@ EFFECT_SIZE_THRESHOLD = None
 # Resources
 MEM = 10
 TIME = 15
+CPUS = 1
 
 # Plotting
 MAP_SIZE = 50

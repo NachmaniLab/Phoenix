@@ -73,7 +73,7 @@ def parse_run_args() -> argparse.Namespace:
                         help='Memory to allocate for each process (GB)')
     parser.add_argument('--time', type=int, default=TIME,
                         help='Time to allocate for each process (hours)')
-    parser.add_argument('--cpus', type=int, default=1,
+    parser.add_argument('--cpus', type=int, default=CPUS,
                         help='Number of CPUs per task for parallel random forest fitting')
     parser.add_argument('--output', type=str, required=True,
                         help='Path to output directory')
