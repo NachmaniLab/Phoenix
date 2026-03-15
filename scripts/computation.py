@@ -1,5 +1,4 @@
 import os, subprocess
-from scripts.consts import CPUS
 
 
 def to_str(value) -> str:
@@ -18,7 +17,7 @@ def get_cmd(
         processes: int | None = None,
         mem: str = '1G',
         time: str = '0:30:0',
-        cpus: int = CPUS,
+        cpus: int = 1,
         report_path: str | None = None,
         previous_job_id: str | None = None,
         previous_processes: int | None = None,
