@@ -301,7 +301,7 @@ class TrainingPerformanceTest(Test):
     def test_classification_training_performance(self):
         X = np.array(self.scaled_expression[['Gene2', 'Gene5']])
         predictor = CLASSIFICATION_PREDICTOR
-        predictor_args = CLASSIFICATION_PREDICTOR_ARGS
+        predictor_args = CLASSIFICATION_PREDICTOR_ARGS.copy()
         predictor_args['n_jobs'] = 1
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['f1_weighted_icf'], greater_is_better=True)
