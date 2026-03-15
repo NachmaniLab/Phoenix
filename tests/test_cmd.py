@@ -24,7 +24,7 @@ class CmdTest(Test):
             report_path='/path/to/report'
         )
         expected_cmd = (
-            'sbatch --job-name=my_function --mem=1G --time=0:30:0 '
+            'sbatch --job-name=my_function --mem=1G --time=0:30:0 --cpus-per-task=1 '
             '--output=/path/to/report/%j_my_function.out '
             '--error=/path/to/report/%j_my_function.err '
             '--wrap="python -c \'from scripts.my_script import my_function; my_function(arg1=\\"value1\\", arg2=2)\' " '
@@ -38,10 +38,11 @@ class CmdTest(Test):
             script='my_script',
             sbatch=True,
             processes=5,
+            cpus=2,
             report_path='/path/to/report'
         )
         expected_cmd = (
-            'sbatch --job-name=my_function --mem=1G --time=0:30:0 '
+            'sbatch --job-name=my_function --mem=1G --time=0:30:0 --cpus-per-task=2 '
             '--output=/path/to/report/%A_%a_my_function.out '
             '--error=/path/to/report/%A_%a_my_function.err '
             '--wrap="python -c \'from scripts.my_script import my_function; my_function(arg1=\\"value1\\", arg2=2)\' " '
@@ -59,7 +60,7 @@ class CmdTest(Test):
             previous_job_id='12345'
         )
         expected_cmd = (
-            'sbatch --job-name=my_function --mem=1G --time=0:30:0 '
+            'sbatch --job-name=my_function --mem=1G --time=0:30:0 --cpus-per-task=1 '
             '--output=/path/to/report/%j_my_function.out '
             '--error=/path/to/report/%j_my_function.err '
             '--wrap="python -c \'from scripts.my_script import my_function; my_function(arg1=\\"value1\\", arg2=2)\' " '
@@ -79,7 +80,7 @@ class CmdTest(Test):
             previous_processes=3
         )
         expected_cmd = (
-            'sbatch --job-name=my_function --mem=1G --time=0:30:0 '
+            'sbatch --job-name=my_function --mem=1G --time=0:30:0 --cpus-per-task=1 '
             '--output=/path/to/report/%A_%a_my_function.out '
             '--error=/path/to/report/%A_%a_my_function.err '
             '--wrap="python -c \'from scripts.my_script import my_function; my_function(arg1=\\"value1\\", arg2=2)\' " '

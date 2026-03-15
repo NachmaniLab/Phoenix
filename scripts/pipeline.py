@@ -15,7 +15,7 @@ def run_setup_cmd(args: dict, tmp: str | None = None) -> str:
 
 
 # Step 2: Pathway Scoring
-def run_pathway_scoring_cmd(args: dict, processes: int, mem: int, time: int, tmp: str, setup_job_id: str) -> str:
+def run_pathway_scoring_cmd(args: dict, processes: int, cpus: int, mem: int, time: int, tmp: str, setup_job_id: str) -> str:
     cmd = get_cmd(
         func='calculate_pathway_scores',
         script='step_2_pathway_scoring',
@@ -23,6 +23,7 @@ def run_pathway_scoring_cmd(args: dict, processes: int, mem: int, time: int, tmp
         processes=processes,
         mem=f'{mem}G',
         time=f'{time}:0:0',
+        cpus=cpus,
         report_path=tmp,
         previous_job_id=setup_job_id,
     )
@@ -30,7 +31,7 @@ def run_pathway_scoring_cmd(args: dict, processes: int, mem: int, time: int, tmp
 
 
 # Step 3: Background Scoring
-def run_background_scoring_cmd(args: dict, processes: int, mem: int, time: int, tmp: str, pathway_scoring_job_id: str) -> str:
+def run_background_scoring_cmd(args: dict, processes: int, cpus: int, mem: int, time: int, tmp: str, pathway_scoring_job_id: str) -> str:
     cmd = get_cmd(
         func='calculate_background_scores',
         script='step_3_background_scoring',
@@ -38,6 +39,7 @@ def run_background_scoring_cmd(args: dict, processes: int, mem: int, time: int, 
         processes=processes,
         mem=f'{mem}G',
         time=f'{time}:0:0',
+        cpus=cpus,
         report_path=tmp,
         previous_job_id=pathway_scoring_job_id,
         previous_processes=processes,
