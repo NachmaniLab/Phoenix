@@ -1,6 +1,8 @@
 import sys, os, warnings
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
@@ -403,9 +405,9 @@ def plot_volcano(
         r, c = divmod(j, ncols)
         fig.delaxes(axes[r, c])
 
-    fig.suptitle(title, fontsize=14, y=1.02)
+    fig.suptitle(title, fontsize=14)
     fig.tight_layout()
-    save_plot(f'volcano_{title}', output, format=format)
+    save_plot(f"volcano_{title.replace('-', '_')}", output, format=format)
 
 
 def plot_experiment(
@@ -547,7 +549,7 @@ def plot(
         if target_data is None or results is None:
             continue
 
-        plot_volcano(results, title=target_type.replace('-', '_'), output=output)
+        plot_volcano(results, title=target_type, output=output)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
 

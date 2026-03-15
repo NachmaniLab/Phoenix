@@ -4,6 +4,8 @@ import os, yaml, glob, json, gzip  # type: ignore[import-untyped]
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.io import mmread
 from scipy.sparse import csr_matrix
