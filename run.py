@@ -33,6 +33,10 @@ def run_tool(
         distribution: str,
         effect_size_threshold: float | None,
         corrected_effect_size: bool,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
         processes: int,
         cpus: int,
         mem: int,
@@ -107,6 +111,8 @@ def run_tool(
         aggregate(
             output, tmp, cache, processes,
             distribution, repeats, corrected_effect_size,
+            fdr_threshold, corrected_effect_size_threshold,
+            importance_lower_threshold, importance_gene_fraction_threshold,
             background_mode, classification, regression, start_time, verbose=verbose
         )
         

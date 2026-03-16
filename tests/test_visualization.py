@@ -15,6 +15,18 @@ def make_results(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def call_filter(
+        results,
+        fdr_threshold=FDR_THRESHOLD,
+        corrected_effect_size_threshold=CORRECTED_EFFECT_SIZE_THRESHOLD,
+        importance_lower_threshold=IMPORTANCE_LOWER_THRESHOLD,
+        importance_gene_fraction_threshold=IMPORTANCE_GENE_FRACTION_THRESHOLD,
+    ):
+    """Helper that always passes all required thresholds explicitly."""
+    return filter_top_pathways(results, fdr_threshold, corrected_effect_size_threshold,
+                               importance_lower_threshold, importance_gene_fraction_threshold)
+
+
 class FilterTopPathwaysTest(Test):
 
     def _make_passing_row(self, target: str = 'TypeA', pathway: str = 'Pathway1') -> dict:
@@ -33,9 +45,9 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeA', 'Pathway1'),
             self._make_passing_row('TypeB', 'Pathway2'),
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 2)
-        self.assertListEqual(list(out.columns), [TARGET_COL, 'pathway'])
+        self.assertListEqual(list(out.columns), [TARGET_COL, 'set_name'])
 
     def test_fdr_filter(self):
         """Rows with fdr above the threshold should be excluded."""
@@ -43,9 +55,9 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeA', 'Pathway1'),
             {**self._make_passing_row('TypeA', 'Pathway2'), 'fdr': 0.1},  # fails FDR
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 1)
-        self.assertEqual(out.iloc[0]['pathway'], 'Pathway1')
+        self.assertEqual(out.iloc[0]['set_name'], 'Pathway1')
 
     def test_corrected_effect_size_filter_positive(self):
         """Rows with |corrected_effect_size| below threshold should be excluded."""
@@ -53,7 +65,7 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeA', 'Pathway1'),
             {**self._make_passing_row('TypeA', 'Pathway2'), 'corrected_effect_size': 0.5},  # fails |es|
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 1)
 
     def test_corrected_effect_size_filter_negative(self):
@@ -61,7 +73,7 @@ class FilterTopPathwaysTest(Test):
         results = make_results([
             {**self._make_passing_row('TypeA', 'Pathway1'), 'corrected_effect_size': -1.5},
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 1)
 
     def test_corrected_effect_size_filter_negative_small(self):
@@ -69,7 +81,7 @@ class FilterTopPathwaysTest(Test):
         results = make_results([
             {**self._make_passing_row('TypeA', 'Pathway1'), 'corrected_effect_size': -0.5},
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 0)
 
     def test_importance_filter_majority_below_threshold(self):
@@ -79,7 +91,7 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row('TypeA', 'Pathway1'),
              'gene_importances': '0.01; 0.02; 0.01; 0.4'},
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 0)
 
     def test_importance_filter_exactly_half(self):
@@ -89,7 +101,7 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row('TypeA', 'Pathway1'),
              'gene_importances': '0.01; 0.4'},
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 1)
 
     def test_importance_filter_all_above(self):
@@ -98,7 +110,7 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row('TypeA', 'Pathway1'),
              'gene_importances': '0.1; 0.2; 0.3'},
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 1)
 
     def test_all_cells_excluded(self):
@@ -107,33 +119,35 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row(ALL_CELLS, 'Pathway1')},
             self._make_passing_row('TypeA', 'Pathway2'),
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 1)
         self.assertEqual(out.iloc[0][TARGET_COL], 'TypeA')
 
     def test_empty_results(self):
         """Empty input should produce empty output."""
         results = pd.DataFrame(columns=[TARGET_COL, 'set_name', 'fdr', 'corrected_effect_size', 'gene_importances'])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 0)
-        self.assertListEqual(list(out.columns), [TARGET_COL, 'pathway'])
+        self.assertListEqual(list(out.columns), [TARGET_COL, 'set_name'])
 
     def test_custom_thresholds(self):
         """Custom threshold values should be respected."""
         results = make_results([
             {**self._make_passing_row('TypeA', 'Pathway1'), 'fdr': 0.08},  # passes fdr_threshold=0.1
         ])
-        out = filter_top_pathways(results, fdr_threshold=0.1)
+        out = filter_top_pathways(results, 0.1, CORRECTED_EFFECT_SIZE_THRESHOLD,
+                                  IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
         self.assertEqual(len(out), 1)
 
-        out_strict = filter_top_pathways(results, fdr_threshold=0.05)
+        out_strict = filter_top_pathways(results, 0.05, CORRECTED_EFFECT_SIZE_THRESHOLD,
+                                         IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
         self.assertEqual(len(out_strict), 0)
 
     def test_output_columns(self):
-        """Output DataFrame should contain exactly [TARGET_COL, 'pathway'] columns."""
+        """Output DataFrame should contain exactly [TARGET_COL, 'set_name'] columns."""
         results = make_results([self._make_passing_row()])
-        out = filter_top_pathways(results)
-        self.assertListEqual(list(out.columns), [TARGET_COL, 'pathway'])
+        out = call_filter(results)
+        self.assertListEqual(list(out.columns), [TARGET_COL, 'set_name'])
 
     def test_multiple_targets_multiple_pathways(self):
         """Filter should work correctly across multiple targets and pathways."""
@@ -143,7 +157,7 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeB', 'Pathway1'),
             {**self._make_passing_row('TypeB', 'Pathway3'), 'corrected_effect_size': 0.1},  # fails ES
         ])
-        out = filter_top_pathways(results)
+        out = call_filter(results)
         self.assertEqual(len(out), 2)
         targets = set(out[TARGET_COL].tolist())
         self.assertEqual(targets, {'TypeA', 'TypeB'})

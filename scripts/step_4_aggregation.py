@@ -1,7 +1,7 @@
 import time as runtime
 import numpy as np
 import pandas as pd
-from scripts.consts import TARGET_COL, BackgroundMode
+from scripts.consts import TARGET_COL, BackgroundMode, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD
 from scripts.output import aggregate_batch_results, load_background_scores, load_sizes, save_csv
 from scripts.prediction import compare_scores
 from scripts.utils import correct_effect_size, define_background, adjust_p_value, format_runtime, format_memory, get_peak_memory_mb, load_total_runtime, load_peak_memory, save_step_runtime, save_peak_memory, _HAS_RESOURCE
@@ -84,6 +84,10 @@ def aggregate(
         distribution: str,
         repeats: int,
         corrected_effect_size: bool,
+        fdr_threshold: float = FDR_THRESHOLD,
+        corrected_effect_size_threshold: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
+        importance_lower_threshold: float = IMPORTANCE_LOWER_THRESHOLD,
+        importance_gene_fraction_threshold: float = IMPORTANCE_GENE_FRACTION_THRESHOLD,
         background_mode: BackgroundMode | None = None,
         classification: pd.DataFrame | None = None,
         regression: pd.DataFrame | None = None,
@@ -121,7 +125,8 @@ def aggregate(
 
     if verbose:
         print('Plotting results...')
-    plot(output)
+    plot(output, fdr_threshold=fdr_threshold, corrected_effect_size_threshold=corrected_effect_size_threshold,
+         importance_lower_threshold=importance_lower_threshold, importance_gene_fraction_threshold=importance_gene_fraction_threshold)
 
     step_4_time = runtime.time() - step_start
     save_step_runtime(tmp, 'step4', step_4_time)

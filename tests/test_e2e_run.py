@@ -184,7 +184,7 @@ class E2ERunTest(Test):
             df = pd.read_csv(path)
             if not df.empty:
                 self.assertIn(TARGET_COL, df.columns)
-                self.assertIn('pathway', df.columns)
+                self.assertIn('set_name', df.columns)
 
         for file_name in output_plots:
             path = os.path.join(output, file_name)

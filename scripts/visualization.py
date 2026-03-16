@@ -9,7 +9,7 @@ import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
-from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, convert_from_str, make_valid_filename
+from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, convert_from_str
 from scripts.output import load_sizes, read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
 from scripts.consts import FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
 
@@ -335,7 +335,7 @@ def plot_volcano(
     effect_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
     fdr_thresh: float = FDR_THRESHOLD,
-    effect_thresh: float = 1,
+    effect_thresh: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
     ncols: int = 5,
     figsize_per_panel=(3, 3),
     bins: int = 200,
@@ -517,10 +517,10 @@ def plot_all_cell_types_and_trajectories(
 
 def filter_top_pathways(
         results: pd.DataFrame,
-        fdr_threshold: float = FDR_THRESHOLD,
-        corrected_effect_size_threshold: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
-        importance_lower_threshold: float = IMPORTANCE_LOWER_THRESHOLD,
-        importance_gene_fraction_threshold: float = IMPORTANCE_GENE_FRACTION_THRESHOLD,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
     ) -> pd.DataFrame:
     """
     Filter pathway-target pairs based on three thresholds:
@@ -529,16 +529,13 @@ def filter_top_pathways(
     3. Importance threshold: keep only pathways where the fraction of genes with importance
        below importance_lower_threshold does not exceed importance_gene_fraction_threshold
 
-    Returns a DataFrame with columns [TARGET_COL, 'pathway'].
+    Returns a DataFrame with columns [TARGET_COL, 'set_name'].
     """
     df = results.copy()
     df = df[df[TARGET_COL] != ALL_CELLS]
 
-    # FDR filter
-    df = df[df['fdr'] <= fdr_threshold]
-
-    # Corrected effect size filter
-    df = df[df['corrected_effect_size'].abs() >= corrected_effect_size_threshold]
+    # FDR and corrected effect size filter
+    df = df[(df['fdr'] <= fdr_threshold) & (df['corrected_effect_size'].abs() >= corrected_effect_size_threshold)]
 
     # Importance filter
     def passes_importance_filter(row) -> bool:
@@ -556,13 +553,17 @@ def filter_top_pathways(
         df = df[mask]
 
     if df.empty:
-        return pd.DataFrame(columns=[TARGET_COL, 'pathway'])
+        return pd.DataFrame(columns=[TARGET_COL, 'set_name'])
 
-    return df[[TARGET_COL, 'set_name']].rename(columns={'set_name': 'pathway'}).reset_index(drop=True)
+    return df[[TARGET_COL, 'set_name']].reset_index(drop=True)
 
 
 def plot(
         output: str,
+        fdr_threshold: float = FDR_THRESHOLD,
+        corrected_effect_size_threshold: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
+        importance_lower_threshold: float = IMPORTANCE_LOWER_THRESHOLD,
+        importance_gene_fraction_threshold: float = IMPORTANCE_GENE_FRACTION_THRESHOLD,
         args: dict | None = None,
         expression: pd.DataFrame | str = 'expression', 
         reduction: pd.DataFrame | str = 'reduction', 
@@ -570,10 +571,6 @@ def plot(
         pseudotime: pd.DataFrame | str = 'pseudotime',
         classification_results: pd.DataFrame | str = 'cell_type_classification',
         regression_results: pd.DataFrame | str = 'pseudotime_regression',
-        fdr_threshold: float | None = None,
-        corrected_effect_size_threshold: float | None = None,
-        importance_lower_threshold: float | None = None,
-        importance_gene_fraction_threshold: float | None = None,
         top: int | None = None,
         all: bool = False,
     ):
@@ -582,11 +579,6 @@ def plot(
     all: whether to plot all pathways
     """
     args = args or read_args(output)
-    fdr_threshold = fdr_threshold if fdr_threshold is not None else args.get('fdr_threshold', FDR_THRESHOLD)
-    corrected_effect_size_threshold = corrected_effect_size_threshold if corrected_effect_size_threshold is not None else args.get('corrected_effect_size_threshold', CORRECTED_EFFECT_SIZE_THRESHOLD)
-    importance_lower_threshold = importance_lower_threshold if importance_lower_threshold is not None else args.get('importance_lower_threshold', IMPORTANCE_LOWER_THRESHOLD)
-    importance_gene_fraction_threshold = importance_gene_fraction_threshold if importance_gene_fraction_threshold is not None else args.get('importance_gene_fraction_threshold', IMPORTANCE_GENE_FRACTION_THRESHOLD)
-
     background_mode = load_sizes(output)[1]
     expression = get_preprocessed_data(expression, output)
     reduction = get_preprocessed_data(reduction, output)
@@ -638,9 +630,7 @@ def plot(
             importance_lower_threshold=importance_lower_threshold,
             importance_gene_fraction_threshold=importance_gene_fraction_threshold,
         )
-        top_pathways_title = f'top_{target_type.replace("-", "_")}_pathways'
-        # Use to_csv directly (not save_csv) to always write the file, even when empty
-        top_pathways.to_csv(os.path.join(output, f'{make_valid_filename(top_pathways_title)}.csv'), index=False)
+        save_csv(top_pathways, title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
 
         del data
         del results
