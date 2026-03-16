@@ -67,6 +67,14 @@ def parse_run_args() -> argparse.Namespace:
                         help='Expression threshold for effect size calculation. Genes with expression below this value will be masked. Default: None (no masking)')
     parser.add_argument('--corrected_effect_size', type=str, default='True',
                         help='Whether to correct effect size by target label. Default: True')
+    parser.add_argument('--fdr_threshold', type=float, default=FDR_THRESHOLD,
+                        help='FDR threshold for top pathway filtering and volcano plot. Default: ' + str(FDR_THRESHOLD))
+    parser.add_argument('--corrected_effect_size_threshold', type=float, default=CORRECTED_EFFECT_SIZE_THRESHOLD,
+                        help='Minimum absolute corrected effect size for top pathway filtering. Default: ' + str(CORRECTED_EFFECT_SIZE_THRESHOLD))
+    parser.add_argument('--importance_lower_threshold', type=float, default=IMPORTANCE_LOWER_THRESHOLD,
+                        help='Gene importance value below which a gene is considered unimportant. Default: ' + str(IMPORTANCE_LOWER_THRESHOLD))
+    parser.add_argument('--importance_gene_fraction_threshold', type=float, default=IMPORTANCE_GENE_FRACTION_THRESHOLD,
+                        help='Maximum fraction of genes with importance below importance_lower_threshold for a pathway to be kept. Default: ' + str(IMPORTANCE_GENE_FRACTION_THRESHOLD))
     
     # Output
     parser.add_argument('--processes', type=int, default=0,

@@ -9,9 +9,9 @@ import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
-from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci
+from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, convert_from_str, make_valid_filename
 from scripts.output import load_sizes, read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
-from scripts.consts import THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
+from scripts.consts import FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
 
 
 sns.set_theme(style='white')
@@ -334,7 +334,7 @@ def plot_volcano(
     target_col: str = TARGET_COL,
     effect_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
-    fdr_thresh: float = THRESHOLD,
+    fdr_thresh: float = FDR_THRESHOLD,
     effect_thresh: float = 1,
     ncols: int = 5,
     figsize_per_panel=(3, 3),
@@ -515,6 +515,52 @@ def plot_all_cell_types_and_trajectories(
     save_plot('targets', output, format=format)
 
 
+def filter_top_pathways(
+        results: pd.DataFrame,
+        fdr_threshold: float = FDR_THRESHOLD,
+        corrected_effect_size_threshold: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
+        importance_lower_threshold: float = IMPORTANCE_LOWER_THRESHOLD,
+        importance_gene_fraction_threshold: float = IMPORTANCE_GENE_FRACTION_THRESHOLD,
+    ) -> pd.DataFrame:
+    """
+    Filter pathway-target pairs based on three thresholds:
+    1. FDR threshold: keep only rows with fdr <= fdr_threshold
+    2. Corrected effect size threshold: keep only rows with |corrected_effect_size| >= corrected_effect_size_threshold
+    3. Importance threshold: keep only pathways where the fraction of genes with importance
+       below importance_lower_threshold does not exceed importance_gene_fraction_threshold
+
+    Returns a DataFrame with columns [TARGET_COL, 'pathway'].
+    """
+    df = results.copy()
+    df = df[df[TARGET_COL] != ALL_CELLS]
+
+    # FDR filter
+    df = df[df['fdr'] <= fdr_threshold]
+
+    # Corrected effect size filter
+    df = df[df['corrected_effect_size'].abs() >= corrected_effect_size_threshold]
+
+    # Importance filter
+    def passes_importance_filter(row) -> bool:
+        importances = convert_from_str(row['gene_importances'])
+        if not isinstance(importances, list):
+            importances = [importances]
+        importances = [float(i) for i in importances]
+        if len(importances) == 0:
+            return False
+        fraction_below = sum(1 for i in importances if i < importance_lower_threshold) / len(importances)
+        return fraction_below <= importance_gene_fraction_threshold
+
+    if not df.empty:
+        mask = df.apply(passes_importance_filter, axis=1)
+        df = df[mask]
+
+    if df.empty:
+        return pd.DataFrame(columns=[TARGET_COL, 'pathway'])
+
+    return df[[TARGET_COL, 'set_name']].rename(columns={'set_name': 'pathway'}).reset_index(drop=True)
+
+
 def plot(
         output: str,
         args: dict | None = None,
@@ -524,7 +570,10 @@ def plot(
         pseudotime: pd.DataFrame | str = 'pseudotime',
         classification_results: pd.DataFrame | str = 'cell_type_classification',
         regression_results: pd.DataFrame | str = 'pseudotime_regression',
-        threshold: float = THRESHOLD,
+        fdr_threshold: float | None = None,
+        corrected_effect_size_threshold: float | None = None,
+        importance_lower_threshold: float | None = None,
+        importance_gene_fraction_threshold: float | None = None,
         top: int | None = None,
         all: bool = False,
     ):
@@ -533,6 +582,11 @@ def plot(
     all: whether to plot all pathways
     """
     args = args or read_args(output)
+    fdr_threshold = fdr_threshold if fdr_threshold is not None else args.get('fdr_threshold', FDR_THRESHOLD)
+    corrected_effect_size_threshold = corrected_effect_size_threshold if corrected_effect_size_threshold is not None else args.get('corrected_effect_size_threshold', CORRECTED_EFFECT_SIZE_THRESHOLD)
+    importance_lower_threshold = importance_lower_threshold if importance_lower_threshold is not None else args.get('importance_lower_threshold', IMPORTANCE_LOWER_THRESHOLD)
+    importance_gene_fraction_threshold = importance_gene_fraction_threshold if importance_gene_fraction_threshold is not None else args.get('importance_gene_fraction_threshold', IMPORTANCE_GENE_FRACTION_THRESHOLD)
+
     background_mode = load_sizes(output)[1]
     expression = get_preprocessed_data(expression, output)
     reduction = get_preprocessed_data(reduction, output)
@@ -549,11 +603,11 @@ def plot(
         if target_data is None or results is None:
             continue
 
-        plot_volcano(results, title=target_type, output=output)
+        plot_volcano(results, title=target_type, output=output, fdr_thresh=fdr_threshold, effect_thresh=corrected_effect_size_threshold)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
 
-        heatmap_pathways, exp_plot_pathways = [], []
+        heatmap_pathways = []
 
         if all or data.shape[0] <= MAP_SIZE:  # plot all pathways
             heatmap_pathways = data.index
@@ -566,21 +620,28 @@ def plot(
             non_unique_targets = []
             for target in data.columns:
                 if target != ALL_CELLS:
-                    pathway_names = get_column_unique_pathways(data, target, top if top else size, threshold)
+                    pathway_names = get_column_unique_pathways(data, target, top if top else size, fdr_threshold)
                     if not pathway_names:
                         non_unique_targets.append(target)
                     heatmap_pathways.extend(pathway_names[:size])
                     for pathway_name in pathway_names:
-                        exp_plot_pathways.append((target, pathway_name))
                         plot_experiment(output, target, pathway_name, target_type, results, target_data, background_mode, args, expression, reduction)
             data = data.drop(non_unique_targets, axis=1)
 
         if len(heatmap_pathways) > 0:
             plot_p_values(data.loc[heatmap_pathways], title=f'{target_type.replace("-", "_")} Prediction', output=output)
-        
-        save_csv(pd.DataFrame(exp_plot_pathways, columns=[TARGET_COL, 'pathway']), title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
+
+        top_pathways = filter_top_pathways(
+            results,
+            fdr_threshold=fdr_threshold,
+            corrected_effect_size_threshold=corrected_effect_size_threshold,
+            importance_lower_threshold=importance_lower_threshold,
+            importance_gene_fraction_threshold=importance_gene_fraction_threshold,
+        )
+        top_pathways_title = f'top_{target_type.replace("-", "_")}_pathways'
+        # Use to_csv directly (not save_csv) to always write the file, even when empty
+        top_pathways.to_csv(os.path.join(output, f'{make_valid_filename(top_pathways_title)}.csv'), index=False)
 
         del data
         del results
         del heatmap_pathways
-        del exp_plot_pathways

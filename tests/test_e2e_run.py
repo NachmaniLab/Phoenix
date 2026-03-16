@@ -19,7 +19,8 @@ from scripts.output import read_args, read_gene_sets, save_args, read_results, s
 from scripts.consts import (
     CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, DISTRIBUTIONS,
-    SIZES, SEED, CELL_TYPE_COL, BackgroundMode, N_ESTIMATORS
+    SIZES, SEED, CELL_TYPE_COL, TARGET_COL, BackgroundMode, N_ESTIMATORS,
+    FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD,
 )
 from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
 
@@ -120,6 +121,10 @@ class E2ERunTest(Test):
             'repeats': 2,
             'effect_size_threshold': None,
             'corrected_effect_size': True,
+            'fdr_threshold': FDR_THRESHOLD,
+            'corrected_effect_size_threshold': CORRECTED_EFFECT_SIZE_THRESHOLD,
+            'importance_lower_threshold': IMPORTANCE_LOWER_THRESHOLD,
+            'importance_gene_fraction_threshold': IMPORTANCE_GENE_FRACTION_THRESHOLD,
             'seed': SEED,
             'distribution': DISTRIBUTIONS[0],
             'processes': processes,
@@ -153,6 +158,11 @@ class E2ERunTest(Test):
             'pseudotime_regression.csv',
         ]
 
+        top_pathways_files = [
+            'top_cell_types_pathways.csv',
+            'top_pseudotime_pathways.csv',
+        ]
+
         output_plots = [
             'volcano_cell_types.png',
             'volcano_pseudotime.png',
@@ -167,6 +177,14 @@ class E2ERunTest(Test):
                 self.assertTrue(not pd.read_csv(path).empty, msg=f"{file_name} is empty")
             elif file_name.endswith('.json'):
                 self.assertTrue(os.path.getsize(path) > 0, msg=f"{file_name} is empty")
+
+        for file_name in top_pathways_files:
+            path = os.path.join(output, file_name)
+            self.assertTrue(os.path.exists(path), msg=f"{file_name} is missing")
+            df = pd.read_csv(path)
+            if not df.empty:
+                self.assertIn(TARGET_COL, df.columns)
+                self.assertIn('pathway', df.columns)
 
         for file_name in output_plots:
             path = os.path.join(output, file_name)
