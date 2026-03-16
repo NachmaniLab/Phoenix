@@ -123,6 +123,7 @@ class E2ERunTest(Test):
             'seed': SEED,
             'distribution': DISTRIBUTIONS[0],
             'processes': processes,
+            'cpus': 2,
             'mem': None,
             'time': None,
             'output': output,

@@ -17,6 +17,7 @@ def get_cmd(
         processes: int | None = None,
         mem: str = '1G',
         time: str = '0:30:0',
+        cpus: int = 1,
         report_path: str | None = None,
         previous_job_id: str | None = None,
         previous_processes: int | None = None,
@@ -35,7 +36,7 @@ def get_cmd(
     
     report_info = '%j' if not processes else r'%A_%a'
     sbatch_cmd = (
-        f"sbatch --job-name={func} --mem={mem} --time={time} "
+        f"sbatch --job-name={func} --mem={mem} --time={time} --cpus-per-task={cpus} "
         f"--output={report_path}/{report_info}_{func}.out "
         f"--error={report_path}/{report_info}_{func}.err "
         f"--wrap=\"{python_cmd}\" "

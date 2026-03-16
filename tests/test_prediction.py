@@ -301,7 +301,9 @@ class TrainingPerformanceTest(Test):
     def test_classification_training_performance(self):
         X = np.array(self.scaled_expression[['Gene2', 'Gene5']])
         predictor = CLASSIFICATION_PREDICTOR
-        predictor_args = {**CLASSIFICATION_PREDICTOR_ARGS, 'n_estimators': N_ESTIMATORS}  
+        predictor_args = CLASSIFICATION_PREDICTOR_ARGS.copy()
+        predictor_args['n_jobs'] = 1
+        predictor_args['n_estimators'] = N_ESTIMATORS
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['f1_weighted_icf'], greater_is_better=True)
         cv = create_cv(is_regression=False, n_splits=self.cross_validation)
@@ -321,12 +323,14 @@ class TrainingPerformanceTest(Test):
             durations.append(duration)
         
         mean_duration = sum(durations) / len(durations)
-        self.assertLessEqual(mean_duration, 0.2)
+        self.assertLessEqual(mean_duration, 0.07)
 
     def test_regression_training_performance(self):
         X = np.array(self.scaled_expression[['Gene1']])
         predictor = REGRESSION_PREDICTOR
-        predictor_args = {**REGRESSION_PREDICTOR_ARGS, 'n_estimators': N_ESTIMATORS}  
+        predictor_args = REGRESSION_PREDICTOR_ARGS.copy()
+        predictor_args['n_jobs'] = 1
+        predictor_args['n_estimators'] = N_ESTIMATORS
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)
         cv = create_cv(is_regression=True, n_splits=self.cross_validation)
@@ -346,7 +350,7 @@ class TrainingPerformanceTest(Test):
             durations.append(duration)
 
         mean_duration = sum(durations) / len(durations)
-        self.assertLessEqual(mean_duration, 0.2)
+        self.assertLessEqual(mean_duration, 0.07)
 
 
 class TrainingTest(Test):

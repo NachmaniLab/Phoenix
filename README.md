@@ -135,6 +135,7 @@ Include parameters relevant for parallelization on a high-computing cluster, whi
 * `processes`: Number of processes to run in parallel. Default: `0`.
 * `mem`: Memory to allocate for each process (GB). Default: `10`.
 * `time`: Time to allocate for each process (hours). Default: `15`.
+* `cpus`: Number of CPUs per task for parallel random forest fitting. Default: `1`.
 
 For a full list of available parameters, run:
 
@@ -166,7 +167,8 @@ python run.py \
     --organism human \
     --pathway_database msigdb \
     --set_fraction 0.5 \
-    --processes 20
+    --processes 20 \
+    --cpus 4
 ```
 
 ### Reducing Runtime

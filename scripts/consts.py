@@ -23,8 +23,8 @@ DATABASES = ['go', 'kegg', 'msigdb']
 CLASSIFICATION_PREDICTOR = RandomForestClassifier
 REGRESSION_PREDICTOR = RandomForestRegressor
 
-CLASSIFICATION_PREDICTOR_ARGS = {'criterion': 'entropy', 'max_depth': 10, 'n_jobs': -1, 'class_weight': 'balanced', 'random_state': SEED}
-REGRESSION_PREDICTOR_ARGS = {'criterion': 'squared_error', 'max_depth': 10, 'n_jobs': -1, 'random_state': SEED}
+CLASSIFICATION_PREDICTOR_ARGS = {'criterion': 'entropy', 'max_depth': 10, 'class_weight': 'balanced', 'random_state': SEED}
+REGRESSION_PREDICTOR_ARGS = {'criterion': 'squared_error', 'max_depth': 10, 'random_state': SEED}
 
 CLASSIFICATION_METRICS = {
     'accuracy': accuracy_score,
@@ -70,6 +70,7 @@ EFFECT_SIZE_THRESHOLD = None
 # Resources
 MEM = 10
 TIME = 15
+CPUS = 1
 
 # Plotting
 MAP_SIZE = 50
