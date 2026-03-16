@@ -23,8 +23,8 @@ DATABASES = ['go', 'kegg', 'msigdb']
 CLASSIFICATION_PREDICTOR = RandomForestClassifier
 REGRESSION_PREDICTOR = RandomForestRegressor
 
-CLASSIFICATION_PREDICTOR_ARGS = {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 20, 'n_jobs': -1, 'class_weight': 'balanced', 'random_state': SEED}
-REGRESSION_PREDICTOR_ARGS = {'criterion': 'squared_error', 'max_depth': 10, 'n_estimators': 20, 'n_jobs': -1, 'random_state': SEED}
+CLASSIFICATION_PREDICTOR_ARGS = {'criterion': 'entropy', 'max_depth': 10, 'n_jobs': -1, 'class_weight': 'balanced', 'random_state': SEED}
+REGRESSION_PREDICTOR_ARGS = {'criterion': 'squared_error', 'max_depth': 10, 'n_jobs': -1, 'random_state': SEED}
 
 CLASSIFICATION_METRICS = {
     'accuracy': accuracy_score,
@@ -61,6 +61,7 @@ CLASSIFICATION_METRIC = 'f1_weighted_icf'
 REGRESSION_METRIC = 'neg_root_mean_squared_error'
 CROSS_VALIDATION = 10
 REPEATS = 150
+N_ESTIMATORS = 20
 FEATURE_SELECTION = 'ANOVA'
 SET_FRACTION = 1.0
 THRESHOLD = 0.05  # TODO: add param

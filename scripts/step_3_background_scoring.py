@@ -2,7 +2,7 @@ import os
 import time
 import pandas as pd
 from sklearn.metrics import make_scorer
-from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL, BackgroundMode
+from scripts.consts import CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, N_ESTIMATORS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, TARGET_COL, BackgroundMode
 from scripts.data import get_cell_types, get_lineages, scale_expression, scale_pseudotime
 from scripts.prediction import create_cv, get_prediction_score
 from scripts.utils import define_background, define_batch_size, get_peak_memory_mb, remove_outliers, save_step_runtime, save_peak_memory
@@ -60,6 +60,7 @@ def calculate_background_scores_in_random_mode(
         cell_types: pd.DataFrame | str | None = 'cell_types',
         pseudotime: pd.DataFrame | str | None = 'pseudotime',
         trim_background: bool = True,
+        n_estimators: int = N_ESTIMATORS,
     ) -> None:
     batch = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))  # index between 1 and `processes`, or 0 for a single batch
 
@@ -78,6 +79,11 @@ def calculate_background_scores_in_random_mode(
 
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
+
+    classification_predictor_args = dict(CLASSIFICATION_PREDICTOR_ARGS)
+    classification_predictor_args['n_estimators'] = n_estimators
+    regression_predictor_args = dict(REGRESSION_PREDICTOR_ARGS)
+    regression_predictor_args['n_estimators'] = n_estimators
 
     classification_batch_size = define_batch_size(len(sizes) * len(all_cell_types), processes)
     regression_batch_size = define_batch_size(len(sizes) * len(all_lineages), processes)
@@ -102,7 +108,7 @@ def calculate_background_scores_in_random_mode(
                 cv=classification_cv,
                 set_size=size,
                 predictor=CLASSIFICATION_PREDICTOR,
-                predictor_args=CLASSIFICATION_PREDICTOR_ARGS,  # type: ignore[arg-type]
+                predictor_args=classification_predictor_args,
                 score_function=classification_score_function,
                 cell_types=cell_types,
                 cell_type=target,
@@ -127,7 +133,7 @@ def calculate_background_scores_in_random_mode(
                 cv=regression_cv,
                 set_size=size,
                 predictor=REGRESSION_PREDICTOR,
-                predictor_args=REGRESSION_PREDICTOR_ARGS,  # type: ignore[arg-type]
+                predictor_args=regression_predictor_args,
                 score_function=regression_score_function,
                 scaled_pseudotime=scaled_pseudotime,
                 lineage=target,
@@ -153,6 +159,7 @@ def calculate_background_scores(
         sizes: list[int] | None = None,
         background_mode: BackgroundMode | None = None,
         trim_background: bool = True,
+        n_estimators: int = N_ESTIMATORS,
         verbose: bool = True,
     ) -> None:
     if sizes is None or background_mode is None:
@@ -188,6 +195,7 @@ def calculate_background_scores(
                 cell_types=cell_types,
                 pseudotime=pseudotime,
                 trim_background=trim_background,
+                n_estimators=n_estimators,
             )
 
     save_step_runtime(tmp, 'step3', time.time() - step_start, batch)

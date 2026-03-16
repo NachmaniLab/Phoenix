@@ -25,6 +25,7 @@ def run_tool(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        n_estimators: int,
         background_mode: BackgroundMode,
         random_sizes: list[int],
         repeats: int,
@@ -59,6 +60,7 @@ def run_tool(
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
             'cross_validation': cross_validation, 'seed': seed, 'processes': processes,
             'output': output, 'tmp': tmp, 'effect_size_threshold': effect_size_threshold,
+            'n_estimators': n_estimators,
         }
         pathway_scoring_job_id = run_pathway_scoring_cmd(pathway_scoring_args, processes, mem, time, tmp, setup_job_id)
 
@@ -67,6 +69,7 @@ def run_tool(
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
             'cross_validation': cross_validation, 'repeats': repeats, 'processes': processes,
             'output': output, 'tmp': tmp, 'cache': cache,
+            'n_estimators': n_estimators,
         }
         background_scoring_job_id = run_background_scoring_cmd(background_scoring_args, processes, mem, time, tmp, pathway_scoring_job_id)
 
@@ -92,7 +95,7 @@ def run_tool(
             cross_validation, seed, processes,
             output, tmp, effect_size_threshold,
             expression, cell_types, pseudotime,
-            gene_sets, sizes, verbose=verbose
+            gene_sets, sizes, n_estimators=n_estimators, verbose=verbose
         )  # type: ignore[misc]
         calculate_background_scores(
             classification_metric, regression_metric,
@@ -100,7 +103,7 @@ def run_tool(
             output, tmp, cache,
             expression, cell_types, pseudotime,
             classification, regression,
-            sizes, background_mode, verbose=verbose
+            sizes, background_mode, n_estimators=n_estimators, verbose=verbose
         )
         aggregate(
             output, tmp, cache, processes,
