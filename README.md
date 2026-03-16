@@ -178,7 +178,7 @@ For faster runs, consider the following options:
 * Fewer cross-validation folds: Reduce `--cross_validation` from the default `10` to `5` or even `2`.
 * Custom pathway list: Use `--custom_pathways` with a smaller, targeted set of gene annotations instead of a full database.
 * Fewer trees: Lower `--n_estimators` from the default `20`.
-* Parallelization: Set `--processes` to run pathway scoring in parallel across multiple cores.
+* Parallelization: Set `--processes` to run pathway scoring in parallel across multiple cores, and `--cpus` to parallelize random forest fitting within each process.
 
 ### Visualization
 
