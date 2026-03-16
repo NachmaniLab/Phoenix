@@ -7,10 +7,10 @@ from unittest.mock import patch
 from scripts.backgrounds import define_sizes_in_real_mode
 from tests.interface import Test
 from scripts.step_2_pathway_scoring import calculate_pathway_scores
-from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
+from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
 from scripts.consts import (
     CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, SIZES,
-    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED
+    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED, BackgroundMode
 )
 from scripts.output import aggregate_batch_results
 
@@ -187,6 +187,61 @@ class CalculateBackgroundScoresInRealModeTest(Test):
             self.assertEqual(len(result), 3)
             self.assertCountEqual(result["batch"].tolist(), [1, 2, 3])
 
+
+class CalculateBackgroundScoresRealModeBatchOptimizationTest(Test):
+
+    def setUp(self):
+        self._tmp_dir = tempfile.TemporaryDirectory()
+        sizes = [5, 10]
+        cell_types = ['TypeA', 'TypeB']
+        lineages = ['Lineage1']
+        classification, regression = [], []
+        for size in sizes:
+            for ct in cell_types:
+                classification.append({'set_size': size, TARGET_COL: ct, 'pathway_score': 0.5})
+            for lin in lineages:
+                regression.append({'set_size': size, TARGET_COL: lin, 'pathway_score': 0.5})
+        self.classification = pd.DataFrame(classification)
+        self.regression = pd.DataFrame(regression)
+        self.default_params = {
+            'classification_metric': CLASSIFICATION_METRIC,
+            'regression_metric': REGRESSION_METRIC,
+            'cross_validation': 2,
+            'repeats': 1,
+            'processes': 3,
+            'output': '',
+            'tmp': self._tmp_dir.name,
+            'cache': '',
+            'classification': self.classification,
+            'regression': self.regression,
+            'sizes': sizes,
+            'background_mode': BackgroundMode.REAL,
+            'trim_background': False,
+            'verbose': False,
+        }
+
+    def tearDown(self):
+        self._tmp_dir.cleanup()
+
+    @patch('scripts.step_3_background_scoring.save_background_scores')
+    def test_real_mode_runs_for_batch_zero(self, mock_save):
+        with patch.dict(os.environ, {'SLURM_ARRAY_TASK_ID': '0'}):
+            calculate_background_scores(**self.default_params)
+        self.assertGreater(mock_save.call_count, 0)
+
+    @patch('scripts.step_3_background_scoring.save_background_scores')
+    def test_real_mode_runs_for_batch_one(self, mock_save):
+        with patch.dict(os.environ, {'SLURM_ARRAY_TASK_ID': '1'}):
+            calculate_background_scores(**self.default_params)
+        self.assertGreater(mock_save.call_count, 0)
+
+    @patch('scripts.step_3_background_scoring.save_background_scores')
+    def test_real_mode_skips_for_batch_greater_than_one(self, mock_save):
+        for batch in ('2', '3', '10'):
+            mock_save.reset_mock()
+            with patch.dict(os.environ, {'SLURM_ARRAY_TASK_ID': batch}):
+                calculate_background_scores(**self.default_params)
+            self.assertEqual(mock_save.call_count, 0, f'Expected no saves for batch {batch}')
 
 class CalculateBackgroundScoresInRandomModeTest(Test):
 

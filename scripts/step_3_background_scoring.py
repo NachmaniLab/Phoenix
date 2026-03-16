@@ -163,6 +163,8 @@ def calculate_background_scores(
 
     match background_mode:
         case BackgroundMode.REAL:
+            if batch > 1:
+                return  # Real mode is invariant to batch; only the first task (or sequential) needs to run
             if verbose:
                 print(f'Calculating background scores for real mode...')
             calculate_background_scores_in_real_mode(
