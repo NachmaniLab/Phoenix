@@ -38,7 +38,7 @@ conda install --file requirements.txt
 
 To run the tool, execute the `run.py` script with the relevant parameters.
 
-### Basic arguments
+### Basic Arguments
 
 Provide input data:
 
@@ -97,7 +97,7 @@ Provide output path:
 To convert **AnnData** (`.h5ad`) or **Seurat** (`.rds`) objects to Phoenix input CSVs, use the scripts in [`converters/`](converters/). Both scripts export `expression.csv`, `cell_types.csv`, `pseudotime.csv`, and `reduction.csv` as needed. Run with `--help` for all options.
 
 
-### Additional arguments
+### Additional Arguments
 
 Customize preprocessing parameters:
 
@@ -142,7 +142,7 @@ For a full list of available parameters, run:
 python run.py --help
 ```
 
-### Basic example
+### Basic Example
 
 ```
 python run.py \
@@ -154,7 +154,7 @@ python run.py \
     --output my_experiment/output
 ```
 
-### Advanced example
+### Advanced Example
 
 ```
 python run.py \
@@ -168,6 +168,15 @@ python run.py \
     --set_fraction 0.5 \
     --processes 20
 ```
+
+### Reducing Runtime
+
+For faster runs, consider the following options:
+
+* **Fewer cross-validation folds**: Reduce `--cross_validation` from the default `10` to `5` or even `2`.
+* **Custom pathway list**: Use `--custom_pathways` with a smaller, targeted set of gene annotations instead of a full database.
+* **Fewer trees**: Lower `--n_estimators` from the default `20`.
+* **Parallelization**: Set `--processes` to run pathway scoring in parallel across multiple cores.
 
 ### Visualization
 
@@ -186,7 +195,6 @@ python plot.py \
     --pathway GOBP_POSITIVE_REGULATION_OF_MONOCYTE_DIFFERENTIATION \
     --cell_type Monocyte
 ```
-
 
 ## Output
 
