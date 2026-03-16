@@ -29,6 +29,7 @@ def calculate_pathway_scores(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        n_estimators: int,
         seed: int,
         processes: int,
         cpus: int,
@@ -69,8 +70,8 @@ def calculate_pathway_scores(
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
 
-    classification_predictor_args = {**CLASSIFICATION_PREDICTOR_ARGS, 'n_jobs': cpus}
-    regression_predictor_args = {**REGRESSION_PREDICTOR_ARGS, 'n_jobs': cpus}
+    classification_predictor_args = {**CLASSIFICATION_PREDICTOR_ARGS, 'n_estimators': n_estimators, 'n_jobs': cpus}
+    regression_predictor_args = {**REGRESSION_PREDICTOR_ARGS, 'n_estimators': n_estimators, 'n_jobs': cpus}
 
     logger = f'Batch {batch}: ' if batch else ''    
     for i, (set_name, gene_set) in tqdm(

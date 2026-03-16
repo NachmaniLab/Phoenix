@@ -51,6 +51,8 @@ def parse_run_args() -> argparse.Namespace:
                         help='Regression score: ' + ', '.join(REGRESSION_METRICS.keys()))
     parser.add_argument('--cross_validation', type=int, default=CROSS_VALIDATION,
                         help='Number of cross-validation folds')
+    parser.add_argument('--n_estimators', type=int, default=N_ESTIMATORS,
+                        help='Number of trees in the random forest')
     parser.add_argument('--background_mode', type=str, default=BackgroundMode.AUTO.name,
                         help='Background mode for p-value estimation: `real` uses real pathway scores, `random` uses scores from random gene sets, and `auto` selects automatically based on the number of gene sets')
     parser.add_argument('--random_sizes', type=int, nargs='*', default=SIZES,
@@ -130,6 +132,7 @@ def validate_run_args(args):
     assert args.regression_metric in REGRESSION_METRICS.keys()
     assert not args.feature_selection or args.feature_selection in FEATURE_SELECTION_METHODS
     assert 2 <= args.cross_validation <= 10
+    assert args.n_estimators >= 1
     assert args.repeats >= 5
     assert args.seed > 0
     assert args.distribution in DISTRIBUTIONS

@@ -8,7 +8,7 @@ from tests.interface import Test
 from scripts.prediction import create_cv, get_train_target, get_train_data, train, compare_scores, get_prediction_score, encode_labels
 from scripts.step_2_pathway_scoring import get_gene_set_batch
 from scripts.utils import adjust_p_value
-from scripts.consts import CELL_TYPE_COL, ALL_CELLS, CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
+from scripts.consts import CELL_TYPE_COL, ALL_CELLS, N_ESTIMATORS, CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
 
 
 class LabelEncodingTest(Test):
@@ -303,6 +303,7 @@ class TrainingPerformanceTest(Test):
         predictor = CLASSIFICATION_PREDICTOR
         predictor_args = CLASSIFICATION_PREDICTOR_ARGS.copy()
         predictor_args['n_jobs'] = 1
+        predictor_args['n_estimators'] = N_ESTIMATORS
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['f1_weighted_icf'], greater_is_better=True)
         cv = create_cv(is_regression=False, n_splits=self.cross_validation)
@@ -329,6 +330,7 @@ class TrainingPerformanceTest(Test):
         predictor = REGRESSION_PREDICTOR
         predictor_args = REGRESSION_PREDICTOR_ARGS.copy()
         predictor_args['n_jobs'] = 1
+        predictor_args['n_estimators'] = N_ESTIMATORS
         model = predictor(**predictor_args)
         score_function = make_scorer(METRICS['neg_mean_squared_error'], greater_is_better=True)
         cv = create_cv(is_regression=True, n_splits=self.cross_validation)
