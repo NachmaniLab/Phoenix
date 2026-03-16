@@ -29,6 +29,7 @@ def calculate_pathway_scores(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        n_estimators: int,
         seed: int,
         processes: int,
         output: str,
@@ -68,6 +69,9 @@ def calculate_pathway_scores(
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
 
+    classification_predictor_args = {**CLASSIFICATION_PREDICTOR_ARGS, 'n_estimators': n_estimators}
+    regression_predictor_args = {**REGRESSION_PREDICTOR_ARGS, 'n_estimators': n_estimators}
+
     logger = f'Batch {batch}: ' if batch else ''    
     for i, (set_name, gene_set) in tqdm(
         enumerate(batch_gene_sets.items()),
@@ -91,7 +95,7 @@ def calculate_pathway_scores(
             pathway_score, top_genes, gene_importances = get_prediction_score(
                 scaled_expression=scaled_expression,
                 predictor=CLASSIFICATION_PREDICTOR,
-                predictor_args=CLASSIFICATION_PREDICTOR_ARGS,  # type: ignore[arg-type]
+                predictor_args=classification_predictor_args,
                 score_function=classification_score_function,
                 seed=seed,
                 gene_set=gene_set,
@@ -116,7 +120,7 @@ def calculate_pathway_scores(
             pathway_score, top_genes, gene_importances = get_prediction_score(
                 scaled_expression=scaled_expression,
                 predictor=REGRESSION_PREDICTOR,
-                predictor_args=REGRESSION_PREDICTOR_ARGS,  # type: ignore[arg-type]
+                predictor_args=regression_predictor_args,
                 score_function=regression_score_function,
                 seed=seed,
                 gene_set=gene_set,

@@ -116,6 +116,7 @@ Customize prediction model parameters:
 * `classification_metric`: Classification score such as `accuracy`, `accuracy_balanced`, `f1`, `f1_weighted`, `f1_macro`, `f1_micro`, `f1_weighted_icf` or `recall_weighted_icf`. Default: `f1_weighted_icf`.
 * `regression_metric`: Regression score such as `neg_mean_absolute_error`, `neg_mean_squared_error` or `neg_root_mean_squared_error`. Default: `neg_root_mean_squared_error`.
 * `cross_validation`: Number of cross-validation folds. Default: `10`.
+* `n_estimators`: Number of trees in the random forest. Default: `20`.
 * `seed`: Seed for reproducibility. Default: `3407`.
 
 Customize background distribution parameters:
