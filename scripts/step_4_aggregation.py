@@ -86,7 +86,7 @@ def aggregate(
         corrected_effect_size: bool,
         fdr_threshold: float,
         corrected_effect_size_threshold: float,
-        importance_lower_threshold: float ,
+        importance_lower_threshold: float,
         importance_gene_fraction_threshold: float,
         background_mode: BackgroundMode | None = None,
         classification: pd.DataFrame | None = None,
