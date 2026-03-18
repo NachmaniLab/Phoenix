@@ -20,7 +20,6 @@ from scripts.consts import (
     CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, DISTRIBUTIONS,
     SIZES, SEED, CELL_TYPE_COL, TARGET_COL, BackgroundMode, N_ESTIMATORS,
-    FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD,
 )
 from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
 
