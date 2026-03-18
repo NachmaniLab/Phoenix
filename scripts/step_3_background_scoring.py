@@ -52,8 +52,10 @@ def calculate_background_scores_in_random_mode(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        n_estimators: int,
         repeats: int,
         processes: int,
+        cpus: int,
         output: str,
         cache: str,
         expression: pd.DataFrame | str = 'expression', 
@@ -79,6 +81,9 @@ def calculate_background_scores_in_random_mode(
     classification_cv = create_cv(is_regression=False, n_splits=cross_validation)
     regression_cv = create_cv(is_regression=True, n_splits=cross_validation)
 
+    classification_predictor_args = {**CLASSIFICATION_PREDICTOR_ARGS, 'n_estimators': n_estimators, 'n_jobs': cpus}
+    regression_predictor_args = {**REGRESSION_PREDICTOR_ARGS, 'n_estimators': n_estimators, 'n_jobs': cpus}
+
     classification_batch_size = define_batch_size(len(sizes) * len(all_cell_types), processes)
     regression_batch_size = define_batch_size(len(sizes) * len(all_lineages), processes)
 
@@ -102,7 +107,7 @@ def calculate_background_scores_in_random_mode(
                 cv=classification_cv,
                 set_size=size,
                 predictor=CLASSIFICATION_PREDICTOR,
-                predictor_args=CLASSIFICATION_PREDICTOR_ARGS,  # type: ignore[arg-type]
+                predictor_args=classification_predictor_args,  # type: ignore[arg-type]
                 score_function=classification_score_function,
                 cell_types=cell_types,
                 cell_type=target,
@@ -127,7 +132,7 @@ def calculate_background_scores_in_random_mode(
                 cv=regression_cv,
                 set_size=size,
                 predictor=REGRESSION_PREDICTOR,
-                predictor_args=REGRESSION_PREDICTOR_ARGS,  # type: ignore[arg-type]
+                predictor_args=regression_predictor_args,  # type: ignore[arg-type]
                 score_function=regression_score_function,
                 scaled_pseudotime=scaled_pseudotime,
                 lineage=target,
@@ -140,8 +145,10 @@ def calculate_background_scores(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        n_estimators: int,
         repeats: int,
         processes: int,
+        cpus: int,
         output: str,
         tmp: str,
         cache: str,
@@ -182,8 +189,10 @@ def calculate_background_scores(
                 classification_metric=classification_metric,
                 regression_metric=regression_metric,
                 cross_validation=cross_validation,
+                n_estimators=n_estimators,
                 repeats=repeats,
                 processes=processes,
+                cpus=cpus,
                 output=output,
                 cache=cache,
                 expression=expression,

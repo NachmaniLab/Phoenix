@@ -25,6 +25,7 @@ def run_tool(
         classification_metric: str,
         regression_metric: str,
         cross_validation: int,
+        n_estimators: int,
         background_mode: BackgroundMode,
         random_sizes: list[int],
         repeats: int,
@@ -33,6 +34,7 @@ def run_tool(
         effect_size_threshold: float | None,
         corrected_effect_size: bool,
         processes: int,
+        cpus: int,
         mem: int,
         time: int,
         output: str,
@@ -57,18 +59,18 @@ def run_tool(
         pathway_scoring_args = {
             'feature_selection': feature_selection, 'set_fraction': set_fraction, 'min_set_size': min_set_size,
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
-            'cross_validation': cross_validation, 'seed': seed, 'processes': processes,
+            'cross_validation': cross_validation, 'n_estimators': n_estimators, 'seed': seed, 'processes': processes, 'cpus': cpus,
             'output': output, 'tmp': tmp, 'effect_size_threshold': effect_size_threshold,
         }
-        pathway_scoring_job_id = run_pathway_scoring_cmd(pathway_scoring_args, processes, mem, time, tmp, setup_job_id)
+        pathway_scoring_job_id = run_pathway_scoring_cmd(pathway_scoring_args, processes, cpus, mem, time, tmp, setup_job_id)
 
         # Background scoring
         background_scoring_args = {
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
-            'cross_validation': cross_validation, 'repeats': repeats, 'processes': processes,
+            'cross_validation': cross_validation, 'n_estimators': n_estimators, 'repeats': repeats, 'processes': processes, 'cpus': cpus,
             'output': output, 'tmp': tmp, 'cache': cache,
         }
-        background_scoring_job_id = run_background_scoring_cmd(background_scoring_args, processes, mem, time, tmp, pathway_scoring_job_id)
+        background_scoring_job_id = run_background_scoring_cmd(background_scoring_args, processes, cpus, mem, time, tmp, pathway_scoring_job_id)
 
         # Aggregation
         aggregation_args = {
@@ -89,14 +91,14 @@ def run_tool(
         classification, regression = calculate_pathway_scores(
             feature_selection, set_fraction, min_set_size,
             classification_metric, regression_metric,
-            cross_validation, seed, processes,
+            cross_validation, n_estimators, seed, processes, cpus,
             output, tmp, effect_size_threshold,
             expression, cell_types, pseudotime,
             gene_sets, sizes, verbose=verbose
         )  # type: ignore[misc]
         calculate_background_scores(
             classification_metric, regression_metric,
-            cross_validation, repeats, processes,
+            cross_validation, n_estimators, repeats, processes, cpus,
             output, tmp, cache,
             expression, cell_types, pseudotime,
             classification, regression,

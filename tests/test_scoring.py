@@ -10,7 +10,7 @@ from scripts.step_2_pathway_scoring import calculate_pathway_scores
 from scripts.step_3_background_scoring import _get_target_size_pair_batch, calculate_background_scores, calculate_background_scores_in_real_mode, calculate_background_scores_in_random_mode
 from scripts.consts import (
     CELL_TYPE_COL, TARGET_COL, FEATURE_SELECTION, SIZES,
-    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED, BackgroundMode
+    CLASSIFICATION_METRIC, REGRESSION_METRIC, SEED, BackgroundMode, N_ESTIMATORS
 )
 from scripts.output import aggregate_batch_results
 
@@ -48,7 +48,9 @@ class CalculatePathwayScoresTest(Test):
             'effect_size_threshold': None,
             'set_fraction': 1.0,
             'cross_validation': 2,
+            'n_estimators': N_ESTIMATORS,
             'processes': 0,
+            'cpus': 1,
             'output': '',
             'tmp': self._tmp_dir.name,
             'verbose': False,
@@ -279,7 +281,9 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
             classification_metric=CLASSIFICATION_METRIC,
             regression_metric=REGRESSION_METRIC,
             cross_validation=2,
+            n_estimators=N_ESTIMATORS,
             processes=0,
+            cpus=1,
             output='',
             cache='',
             trim_background=False,
@@ -300,7 +304,9 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
             classification_metric=CLASSIFICATION_METRIC,
             regression_metric=REGRESSION_METRIC,
             cross_validation=2,
+            n_estimators=N_ESTIMATORS,
             processes=0,
+            cpus=1,
             output='',
             cache='',
         )
@@ -317,7 +323,9 @@ class CalculateBackgroundScoresInRandomModeTest(Test):
             classification_metric=CLASSIFICATION_METRIC,
             regression_metric=REGRESSION_METRIC,
             cross_validation=2,
+            n_estimators=N_ESTIMATORS,
             processes=0,
+            cpus=1,
             output='',
             cache='',
             trim_background=False,

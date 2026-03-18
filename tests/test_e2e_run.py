@@ -19,7 +19,7 @@ from scripts.output import read_args, read_gene_sets, save_args, read_results, s
 from scripts.consts import (
     CLASSIFICATION_METRIC, REGRESSION_METRIC,
     FEATURE_SELECTION, DISTRIBUTIONS,
-    SIZES, SEED, CELL_TYPE_COL, BackgroundMode
+    SIZES, SEED, CELL_TYPE_COL, BackgroundMode, N_ESTIMATORS
 )
 from scripts.backgrounds import define_sizes_in_real_mode as original_define_sizes_in_real_mode
 
@@ -114,6 +114,7 @@ class E2ERunTest(Test):
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
             'cross_validation': 2,
+            'n_estimators': N_ESTIMATORS,
             'background_mode': background_mode,
             'random_sizes': SIZES,
             'repeats': 2,
@@ -122,6 +123,7 @@ class E2ERunTest(Test):
             'seed': SEED,
             'distribution': DISTRIBUTIONS[0],
             'processes': processes,
+            'cpus': 2,
             'mem': None,
             'time': None,
             'output': output,

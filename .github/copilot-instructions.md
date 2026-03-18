@@ -33,6 +33,9 @@ python -m unittest tests.<module_name>
 - Test classes inherit from `tests.interface.Test`, which extends `unittest.TestCase` and provides shared helper methods like `generate_data()`.
 - Test files are located in `tests/` and follow the naming pattern `test_*.py`.
 
+## Pull Request Policy
+
+Before creating a PR, run the full test suite (`python test.py`). If any tests fail, fix them first. Never create a PR with failing tests.
 
 ## Code Style
 

@@ -38,7 +38,7 @@ conda install --file requirements.txt
 
 To run the tool, execute the `run.py` script with the relevant parameters.
 
-### Basic arguments
+### Basic Arguments
 
 Provide input data:
 
@@ -97,7 +97,7 @@ Provide output path:
 To convert **AnnData** (`.h5ad`) or **Seurat** (`.rds`) objects to Phoenix input CSVs, use the scripts in [`converters/`](converters/). Both scripts export `expression.csv`, `cell_types.csv`, `pseudotime.csv`, and `reduction.csv` as needed. Run with `--help` for all options.
 
 
-### Additional arguments
+### Additional Arguments
 
 Customize preprocessing parameters:
 
@@ -116,6 +116,7 @@ Customize prediction model parameters:
 * `classification_metric`: Classification score such as `accuracy`, `accuracy_balanced`, `f1`, `f1_weighted`, `f1_macro`, `f1_micro`, `f1_weighted_icf` or `recall_weighted_icf`. Default: `f1_weighted_icf`.
 * `regression_metric`: Regression score such as `neg_mean_absolute_error`, `neg_mean_squared_error` or `neg_root_mean_squared_error`. Default: `neg_root_mean_squared_error`.
 * `cross_validation`: Number of cross-validation folds. Default: `10`.
+* `n_estimators`: Number of trees in the random forest. Default: `20`.
 * `seed`: Seed for reproducibility. Default: `3407`.
 
 Customize background distribution parameters:
@@ -134,6 +135,7 @@ Include parameters relevant for parallelization on a high-computing cluster, whi
 * `processes`: Number of processes to run in parallel. Default: `0`.
 * `mem`: Memory to allocate for each process (GB). Default: `10`.
 * `time`: Time to allocate for each process (hours). Default: `15`.
+* `cpus`: Number of CPUs per task for parallel random forest fitting. Default: `1`.
 
 For a full list of available parameters, run:
 
@@ -141,7 +143,7 @@ For a full list of available parameters, run:
 python run.py --help
 ```
 
-### Basic example
+### Basic Example
 
 ```
 python run.py \
@@ -153,7 +155,7 @@ python run.py \
     --output my_experiment/output
 ```
 
-### Advanced example
+### Advanced Example
 
 ```
 python run.py \
@@ -165,8 +167,18 @@ python run.py \
     --organism human \
     --pathway_database msigdb \
     --set_fraction 0.5 \
-    --processes 20
+    --processes 20 \
+    --cpus 4
 ```
+
+### Reducing Runtime
+
+For faster runs, consider the following options:
+
+* Fewer cross-validation folds: Reduce `--cross_validation` from the default `10` to `5` or even `2`.
+* Custom pathway list: Use `--custom_pathways` with a smaller, targeted set of gene annotations instead of a full database.
+* Fewer trees: Lower `--n_estimators` from the default `20`.
+* Parallelization: Set `--processes` to run pathway scoring in parallel across multiple cores, and `--cpus` to parallelize random forest fitting within each process.
 
 ### Visualization
 
@@ -185,7 +197,6 @@ python plot.py \
     --pathway GOBP_POSITIVE_REGULATION_OF_MONOCYTE_DIFFERENTIATION \
     --cell_type Monocyte
 ```
-
 
 ## Output
 

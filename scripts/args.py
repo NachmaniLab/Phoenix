@@ -51,6 +51,8 @@ def parse_run_args() -> argparse.Namespace:
                         help='Regression score: ' + ', '.join(REGRESSION_METRICS.keys()))
     parser.add_argument('--cross_validation', type=int, default=CROSS_VALIDATION,
                         help='Number of cross-validation folds')
+    parser.add_argument('--n_estimators', type=int, default=N_ESTIMATORS,
+                        help='Number of trees in the random forest')
     parser.add_argument('--background_mode', type=str, default=BackgroundMode.AUTO.name,
                         help='Background mode for p-value estimation: `real` uses real pathway scores, `random` uses scores from random gene sets, and `auto` selects automatically based on the number of gene sets')
     parser.add_argument('--random_sizes', type=int, nargs='*', default=SIZES,
@@ -73,6 +75,8 @@ def parse_run_args() -> argparse.Namespace:
                         help='Memory to allocate for each process (GB)')
     parser.add_argument('--time', type=int, default=TIME,
                         help='Time to allocate for each process (hours)')
+    parser.add_argument('--cpus', type=int, default=CPUS,
+                        help='Number of CPUs per task for parallel random forest fitting')
     parser.add_argument('--output', type=str, required=True,
                         help='Path to output directory')
     parser.add_argument('--verbose', action='store_true', default=True,
@@ -128,6 +132,7 @@ def validate_run_args(args):
     assert args.regression_metric in REGRESSION_METRICS.keys()
     assert not args.feature_selection or args.feature_selection in FEATURE_SELECTION_METHODS
     assert 2 <= args.cross_validation <= 10
+    assert args.n_estimators >= 1
     assert args.repeats >= 5
     assert args.seed > 0
     assert args.distribution in DISTRIBUTIONS
@@ -136,6 +141,7 @@ def validate_run_args(args):
     assert not args.processes or args.processes >= 0
     assert not args.processes or args.mem > 0
     assert not args.processes or args.time > 0
+    assert args.cpus >= 1
 
 
 def get_run_args():
