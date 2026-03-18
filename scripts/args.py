@@ -147,7 +147,7 @@ def validate_run_args(args):
     assert 0 < args.set_fraction <= 1
     assert args.min_set_size >= 2
     assert args.effect_size_expression_threshold is None or args.effect_size_expression_threshold >= 0
-    assert (0 <= args.fdr_threshold <= 1)
+    assert (0 < args.fdr_threshold <= 1)
     assert args.corrected_effect_size_threshold >= 0
     assert 0 <= args.importance_lower_threshold <= 1
     assert 0 <= args.importance_gene_fraction_threshold <= 1
