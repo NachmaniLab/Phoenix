@@ -84,6 +84,10 @@ def aggregate(
         distribution: str,
         repeats: int,
         corrected_effect_size: bool,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
         background_mode: BackgroundMode | None = None,
         classification: pd.DataFrame | None = None,
         regression: pd.DataFrame | None = None,
@@ -121,7 +125,7 @@ def aggregate(
 
     if verbose:
         print('Plotting results...')
-    plot(output)
+    plot(output, fdr_threshold, corrected_effect_size_threshold, importance_lower_threshold, importance_gene_fraction_threshold)
 
     step_4_time = runtime.time() - step_start
     save_step_runtime(tmp, 'step4', step_4_time)

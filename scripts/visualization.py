@@ -9,9 +9,9 @@ import scipy.stats as stats
 from scipy.ndimage import gaussian_filter
 from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
-from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci
+from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, convert_from_str
 from scripts.output import load_sizes, read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
-from scripts.consts import THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
+from scripts.consts import TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
 
 
 sns.set_theme(style='white')
@@ -27,7 +27,7 @@ def get_column_unique_pathways(data, col: str, size: int, threshold: float | Non
     tmp = data.copy()
 
     # Keep experiments with most significant results at current cell type compared to the rest and below a certain threshold
-    tmp = tmp[(tmp[col] == tmp.min(axis=1)) & (tmp[col] <= threshold if threshold else 1)]
+    tmp = tmp[(tmp[col] == tmp.min(axis=1)) & (tmp[col] <= threshold if threshold is not None else 1)]
 
     # Keep 10% top experiments to focus on the most significant results
     most_sig = int(data.shape[0] * 0.1) if data.shape[0] > 100 else data.shape[0]
@@ -43,6 +43,50 @@ def get_column_unique_pathways(data, col: str, size: int, threshold: float | Non
 def get_all_column_unique_pathways(data, size: int, threshold: float):
     return [get_column_unique_pathways(data, col, size // data.shape[1], threshold)
             for col in data.columns if col != ALL_CELLS]
+
+
+def filter_top_pathways(
+        results: pd.DataFrame,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
+        effect_size_col: str,
+    ) -> pd.DataFrame:
+    """
+    Filter pathway-target pairs based on three thresholds:
+    1. FDR threshold: keep only rows with fdr <= fdr_threshold
+    2. Effect size threshold: keep only rows with |effect_size| >= corrected_effect_size_threshold
+    3. Importance threshold: keep only pathways where the fraction of genes with importance
+       below importance_lower_threshold does not exceed importance_gene_fraction_threshold
+
+    Returns a DataFrame with columns [TARGET_COL, 'set_name'].
+    """
+    df = results.copy()
+    df = df[df[TARGET_COL] != ALL_CELLS]
+
+    # FDR and effect size filter
+    df = df[(df['fdr'] <= fdr_threshold) & (df[effect_size_col].abs() >= corrected_effect_size_threshold)]
+
+    # Importance filter
+    def passes_importance_filter(row) -> bool:
+        importances = convert_from_str(row['gene_importances'])
+        if not isinstance(importances, list):
+            importances = [importances]
+        importances = [float(i) for i in importances]
+        if len(importances) == 0:
+            return False
+        fraction_below = sum(1 for i in importances if i < importance_lower_threshold) / len(importances)
+        return fraction_below <= importance_gene_fraction_threshold
+
+    if not df.empty:
+        mask = df.apply(passes_importance_filter, axis=1)
+        df = df[mask]
+
+    if df.empty:
+        return pd.DataFrame(columns=[TARGET_COL, 'set_name'])
+
+    return df[[TARGET_COL, 'set_name']].reset_index(drop=True)
 
 
 def plot_p_values(
@@ -328,14 +372,14 @@ def _fast_smooth_density(x, y, bins: int = 200, sigma: float = 2.0):
 
 def plot_volcano(
     df: pd.DataFrame,
+    fdr_thresh: float,
+    effect_thresh: float,
     title: str = '',
     output: str | None = None,
     format: str = 'png',
     target_col: str = TARGET_COL,
-    effect_col: str = "corrected_effect_size",
+    effect_size_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
-    fdr_thresh: float = THRESHOLD,
-    effect_thresh: float = 1,
     ncols: int = 5,
     figsize_per_panel=(3, 3),
     bins: int = 200,
@@ -366,7 +410,7 @@ def plot_volcano(
         ax = axes[r, c]
 
         sub = df[df[target_col] == target]
-        x = sub[effect_col].to_numpy()
+        x = sub[effect_size_col].to_numpy()
         y = sub["neglog10_fdr"].to_numpy()
 
         m = np.isfinite(x) & np.isfinite(y)
@@ -392,7 +436,7 @@ def plot_volcano(
         ax.set_xlim((-2, 2))
         ax.set_ylim(bottom=0)
 
-        n_sig = (((sub[effect_col] < -effect_thresh) | (sub[effect_col] > effect_thresh)) & (sub[fdr_col] < fdr_thresh)).sum()
+        n_sig = ((sub[effect_size_col].abs() >= effect_thresh) & (sub[fdr_col] <= fdr_thresh)).sum()
         ax.set_title(f"{target} (n_sig={n_sig})", fontsize=9)
         ax.tick_params(labelsize=7)
 
@@ -517,6 +561,10 @@ def plot_all_cell_types_and_trajectories(
 
 def plot(
         output: str,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
         args: dict | None = None,
         expression: pd.DataFrame | str = 'expression', 
         reduction: pd.DataFrame | str = 'reduction', 
@@ -524,7 +572,6 @@ def plot(
         pseudotime: pd.DataFrame | str = 'pseudotime',
         classification_results: pd.DataFrame | str = 'cell_type_classification',
         regression_results: pd.DataFrame | str = 'pseudotime_regression',
-        threshold: float = THRESHOLD,
         top: int | None = None,
         all: bool = False,
     ):
@@ -549,11 +596,13 @@ def plot(
         if target_data is None or results is None:
             continue
 
-        plot_volcano(results, title=target_type, output=output)
+        effect_size_col = 'corrected_effect_size' if 'corrected_effect_size' in results.columns else 'effect_size'  # type: ignore[union-attr]
+
+        plot_volcano(results, fdr_threshold, corrected_effect_size_threshold, effect_size_col=effect_size_col, title=target_type, output=output)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
 
-        heatmap_pathways, exp_plot_pathways = [], []
+        heatmap_pathways = []
 
         if all or data.shape[0] <= MAP_SIZE:  # plot all pathways
             heatmap_pathways = data.index
@@ -566,21 +615,27 @@ def plot(
             non_unique_targets = []
             for target in data.columns:
                 if target != ALL_CELLS:
-                    pathway_names = get_column_unique_pathways(data, target, top if top else size, threshold)
+                    pathway_names = get_column_unique_pathways(data, target, top if top else size, fdr_threshold)
                     if not pathway_names:
                         non_unique_targets.append(target)
                     heatmap_pathways.extend(pathway_names[:size])
                     for pathway_name in pathway_names:
-                        exp_plot_pathways.append((target, pathway_name))
                         plot_experiment(output, target, pathway_name, target_type, results, target_data, background_mode, args, expression, reduction)
             data = data.drop(non_unique_targets, axis=1)
 
         if len(heatmap_pathways) > 0:
             plot_p_values(data.loc[heatmap_pathways], title=f'{target_type.replace("-", "_")} Prediction', output=output)
-        
-        save_csv(pd.DataFrame(exp_plot_pathways, columns=[TARGET_COL, 'pathway']), title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
+
+        top_pathways = filter_top_pathways(
+            results,
+            fdr_threshold=fdr_threshold,
+            corrected_effect_size_threshold=corrected_effect_size_threshold,
+            importance_lower_threshold=importance_lower_threshold,
+            importance_gene_fraction_threshold=importance_gene_fraction_threshold,
+            effect_size_col=effect_size_col
+        )
+        save_csv(top_pathways, title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
 
         del data
         del results
         del heatmap_pathways
-        del exp_plot_pathways

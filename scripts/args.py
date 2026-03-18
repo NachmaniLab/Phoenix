@@ -63,10 +63,18 @@ def parse_run_args() -> argparse.Namespace:
                         help='Seed for reproducibility')
     parser.add_argument('--distribution', type=str, default=DISTRIBUTIONS[0],
                         help='Type of background distribution: ' + ', '.join(DISTRIBUTIONS))
-    parser.add_argument('--effect_size_threshold', type=float, default=EFFECT_SIZE_THRESHOLD,
+    parser.add_argument('--effect_size_expression_threshold', type=float, default=EFFECT_SIZE_EXPRESSION_THRESHOLD,
                         help='Expression threshold for effect size calculation. Genes with expression below this value will be masked. Default: None (no masking)')
     parser.add_argument('--corrected_effect_size', type=str, default='True',
                         help='Whether to correct effect size by target label. Default: True')
+    parser.add_argument('--fdr_threshold', type=float, default=FDR_THRESHOLD,
+                        help=f'FDR threshold. Default: {FDR_THRESHOLD}')
+    parser.add_argument('--corrected_effect_size_threshold', type=float, default=CORRECTED_EFFECT_SIZE_THRESHOLD,
+                        help=f'Minimum absolute corrected effect size. Default: {CORRECTED_EFFECT_SIZE_THRESHOLD}')
+    parser.add_argument('--importance_lower_threshold', type=float, default=IMPORTANCE_LOWER_THRESHOLD,
+                        help=f'Gene importance value below which a gene is considered unimportant. Default: {IMPORTANCE_LOWER_THRESHOLD}')
+    parser.add_argument('--importance_gene_fraction_threshold', type=float, default=IMPORTANCE_GENE_FRACTION_THRESHOLD,
+                        help=f'Maximum fraction of genes with importance below importance_lower_threshold for a pathway to be kept. Default: {IMPORTANCE_GENE_FRACTION_THRESHOLD}')
     
     # Output
     parser.add_argument('--processes', type=int, default=0,
@@ -138,6 +146,11 @@ def validate_run_args(args):
     assert args.distribution in DISTRIBUTIONS
     assert 0 < args.set_fraction <= 1
     assert args.min_set_size >= 2
+    assert args.effect_size_expression_threshold is None or args.effect_size_expression_threshold >= 0
+    assert (0 < args.fdr_threshold <= 1)
+    assert args.corrected_effect_size_threshold >= 0
+    assert 0 <= args.importance_lower_threshold <= 1
+    assert 0 <= args.importance_gene_fraction_threshold <= 1
     assert not args.processes or args.processes >= 0
     assert not args.processes or args.mem > 0
     assert not args.processes or args.time > 0

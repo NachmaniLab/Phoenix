@@ -1,5 +1,6 @@
 from scripts.args import get_plot_args
 from scripts.visualization import plot, plot_experiment
+from scripts.output import read_args
 
 
 def plot_tool(
@@ -11,7 +12,15 @@ def plot_tool(
         output: str,
     ):
     if not pathway:
-        plot(output, top=top, all=all)
+        args = read_args(output)
+        plot(
+            output,
+            fdr_threshold=args['fdr_threshold'],
+            corrected_effect_size_threshold=args['corrected_effect_size_threshold'],
+            importance_lower_threshold=args['importance_lower_threshold'],
+            importance_gene_fraction_threshold=args['importance_gene_fraction_threshold'],
+            top=top, all=all
+        )
 
     for p in pathway:
         for c in cell_type:

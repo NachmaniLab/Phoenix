@@ -31,8 +31,12 @@ def run_tool(
         repeats: int,
         seed: int,
         distribution: str,
-        effect_size_threshold: float | None,
+        effect_size_expression_threshold: float | None,
         corrected_effect_size: bool,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
         processes: int,
         cpus: int,
         mem: int,
@@ -60,7 +64,7 @@ def run_tool(
             'feature_selection': feature_selection, 'set_fraction': set_fraction, 'min_set_size': min_set_size,
             'classification_metric': classification_metric, 'regression_metric': regression_metric,
             'cross_validation': cross_validation, 'n_estimators': n_estimators, 'seed': seed, 'processes': processes, 'cpus': cpus,
-            'output': output, 'tmp': tmp, 'effect_size_threshold': effect_size_threshold,
+            'output': output, 'tmp': tmp, 'effect_size_expression_threshold': effect_size_expression_threshold,
         }
         pathway_scoring_job_id = run_pathway_scoring_cmd(pathway_scoring_args, processes, cpus, mem, time, tmp, setup_job_id)
 
@@ -76,7 +80,10 @@ def run_tool(
         aggregation_args = {
             'output': output, 'tmp': tmp, 'cache': cache, 'processes': processes,
             'distribution': distribution, 'repeats': repeats,
-            'corrected_effect_size': corrected_effect_size, 'start_time': start_time
+            'corrected_effect_size': corrected_effect_size,
+            'fdr_threshold': fdr_threshold, 'corrected_effect_size_threshold': corrected_effect_size_threshold,
+            'importance_lower_threshold': importance_lower_threshold, 'importance_gene_fraction_threshold': importance_gene_fraction_threshold,
+            'start_time': start_time
         }
         run_aggregation_cmd(aggregation_args, processes, tmp, background_scoring_job_id)
     
@@ -92,7 +99,7 @@ def run_tool(
             feature_selection, set_fraction, min_set_size,
             classification_metric, regression_metric,
             cross_validation, n_estimators, seed, processes, cpus,
-            output, tmp, effect_size_threshold,
+            output, tmp, effect_size_expression_threshold,
             expression, cell_types, pseudotime,
             gene_sets, sizes, verbose=verbose
         )  # type: ignore[misc]
@@ -107,6 +114,8 @@ def run_tool(
         aggregate(
             output, tmp, cache, processes,
             distribution, repeats, corrected_effect_size,
+            fdr_threshold, corrected_effect_size_threshold,
+            importance_lower_threshold, importance_gene_fraction_threshold,
             background_mode, classification, regression, start_time, verbose=verbose
         )
         
