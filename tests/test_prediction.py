@@ -8,7 +8,7 @@ from tests.interface import Test
 from scripts.prediction import create_cv, get_train_target, get_train_data, train, compare_scores, get_prediction_score, encode_labels
 from scripts.step_2_pathway_scoring import get_gene_set_batch
 from scripts.utils import adjust_p_value
-from scripts.consts import CELL_TYPE_COL, ALL_CELLS, N_ESTIMATORS, CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
+from scripts.consts import CELL_TYPE_COL, ALL_CELLS, N_ESTIMATORS, CLASSIFICATION_PREDICTOR, CLASSIFICATION_PREDICTOR_ARGS, METRICS, REGRESSION_PREDICTOR, REGRESSION_PREDICTOR_ARGS, FDR_THRESHOLD, CLASSIFICATION_METRIC, REGRESSION_METRIC, FEATURE_SELECTION, SEED
 
 
 class LabelEncodingTest(Test):
@@ -514,20 +514,20 @@ class ScoreComparisonTest(Test):
         self.neg_background_scores = [-i for i in self.pos_background_scores]
     
     def test_score_comparison(self):
-        assert compare_scores(pathway_score=0.7, background_scores=self.pos_background_scores, distribution='normal') <= THRESHOLD
-        assert compare_scores(pathway_score=0.2, background_scores=self.pos_background_scores, distribution='normal') > THRESHOLD
+        assert compare_scores(pathway_score=0.7, background_scores=self.pos_background_scores, distribution='normal') <= FDR_THRESHOLD
+        assert compare_scores(pathway_score=0.2, background_scores=self.pos_background_scores, distribution='normal') > FDR_THRESHOLD
 
-        assert compare_scores(pathway_score=0.7, background_scores=self.pos_background_scores, distribution='gamma') <= THRESHOLD
-        assert compare_scores(pathway_score=0.2, background_scores=self.pos_background_scores, distribution='gamma') > THRESHOLD
+        assert compare_scores(pathway_score=0.7, background_scores=self.pos_background_scores, distribution='gamma') <= FDR_THRESHOLD
+        assert compare_scores(pathway_score=0.2, background_scores=self.pos_background_scores, distribution='gamma') > FDR_THRESHOLD
 
         assert compare_scores(pathway_score=0.7, background_scores=self.pos_background_scores, distribution='normal') <= compare_scores(pathway_score=0.7, background_scores=self.pos_background_scores, distribution='gamma')
 
     def test_neg_score_comparison(self):
-        assert compare_scores(pathway_score=-0.07, background_scores=self.neg_background_scores, distribution='normal') <= THRESHOLD
-        assert compare_scores(pathway_score=-0.5, background_scores=self.neg_background_scores, distribution='normal') > THRESHOLD
+        assert compare_scores(pathway_score=-0.07, background_scores=self.neg_background_scores, distribution='normal') <= FDR_THRESHOLD
+        assert compare_scores(pathway_score=-0.5, background_scores=self.neg_background_scores, distribution='normal') > FDR_THRESHOLD
 
-        assert compare_scores(pathway_score=-0.01, background_scores=self.neg_background_scores, distribution='gamma') <= THRESHOLD
-        assert compare_scores(pathway_score=-0.5, background_scores=self.neg_background_scores, distribution='gamma') > THRESHOLD
+        assert compare_scores(pathway_score=-0.01, background_scores=self.neg_background_scores, distribution='gamma') <= FDR_THRESHOLD
+        assert compare_scores(pathway_score=-0.5, background_scores=self.neg_background_scores, distribution='gamma') > FDR_THRESHOLD
 
         assert compare_scores(pathway_score=-0.07, background_scores=self.neg_background_scores, distribution='normal') <= compare_scores(pathway_score=-0.07, background_scores=self.neg_background_scores, distribution='gamma')
 
@@ -587,15 +587,15 @@ class PredictionScoreTest(Test):
 
         # Good gene sets should be significant
         p_value = self._get_p_value(['Gene2'], background, **base_args)
-        self.assertLessEqual(p_value, THRESHOLD)
+        self.assertLessEqual(p_value, FDR_THRESHOLD)
         p_value = self._get_p_value(['Gene5'], background, **base_args)
-        self.assertLessEqual(p_value, THRESHOLD)
+        self.assertLessEqual(p_value, FDR_THRESHOLD)
 
         # Bad gene sets should NOT be significant
         p_value = self._get_p_value(['Gene4'], background, **base_args)
-        self.assertGreaterEqual(p_value, THRESHOLD)
+        self.assertGreaterEqual(p_value, FDR_THRESHOLD)
         p_value = self._get_p_value(['Gene1'], background, **base_args)
-        self.assertGreaterEqual(p_value, THRESHOLD)
+        self.assertGreaterEqual(p_value, FDR_THRESHOLD)
 
     def test_regression_significance(self):
         predictor = REGRESSION_PREDICTOR
@@ -615,15 +615,15 @@ class PredictionScoreTest(Test):
 
         # Good gene sets should be significant
         p_value = self._get_p_value(['Gene1'], background, **base_args)
-        self.assertLessEqual(p_value, THRESHOLD)
+        self.assertLessEqual(p_value, FDR_THRESHOLD)
         p_value = self._get_p_value(['Gene3'], background, **base_args)
-        self.assertLessEqual(p_value, THRESHOLD)
+        self.assertLessEqual(p_value, FDR_THRESHOLD)
 
         # Bad gene sets should NOT be significant
         p_value = self._get_p_value(['Gene2'], background, **base_args)
-        self.assertGreaterEqual(p_value, THRESHOLD)
+        self.assertGreaterEqual(p_value, FDR_THRESHOLD)
         p_value = self._get_p_value(['Gene4'], background, **base_args)
-        self.assertGreaterEqual(p_value, THRESHOLD)
+        self.assertGreaterEqual(p_value, FDR_THRESHOLD)
   
 
 class GetBatchTest(Test):
