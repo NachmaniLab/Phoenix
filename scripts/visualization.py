@@ -27,7 +27,7 @@ def get_column_unique_pathways(data, col: str, size: int, threshold: float | Non
     tmp = data.copy()
 
     # Keep experiments with most significant results at current cell type compared to the rest and below a certain threshold
-    tmp = tmp[(tmp[col] == tmp.min(axis=1)) & (tmp[col] <= threshold if threshold else 1)]
+    tmp = tmp[(tmp[col] == tmp.min(axis=1)) & (tmp[col] <= threshold if threshold is not None else 1)]
 
     # Keep 10% top experiments to focus on the most significant results
     most_sig = int(data.shape[0] * 0.1) if data.shape[0] > 100 else data.shape[0]
