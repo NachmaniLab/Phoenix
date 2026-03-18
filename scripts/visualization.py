@@ -436,7 +436,7 @@ def plot_volcano(
         ax.set_xlim((-2, 2))
         ax.set_ylim(bottom=0)
 
-        n_sig = (((sub[effect_size_col] < -effect_thresh) | (sub[effect_size_col] > effect_thresh)) & (sub[fdr_col] < fdr_thresh)).sum()
+        n_sig = ((sub[effect_size_col].abs() >= effect_thresh) & (sub[fdr_col] <= fdr_thresh)).sum()
         ax.set_title(f"{target} (n_sig={n_sig})", fontsize=9)
         ax.tick_params(labelsize=7)
 
