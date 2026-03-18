@@ -51,11 +51,12 @@ def filter_top_pathways(
         corrected_effect_size_threshold: float,
         importance_lower_threshold: float,
         importance_gene_fraction_threshold: float,
+        effect_size_col: str,
     ) -> pd.DataFrame:
     """
     Filter pathway-target pairs based on three thresholds:
     1. FDR threshold: keep only rows with fdr <= fdr_threshold
-    2. Corrected effect size threshold: keep only rows with |corrected_effect_size| >= corrected_effect_size_threshold
+    2. Effect size threshold: keep only rows with |effect_size| >= corrected_effect_size_threshold
     3. Importance threshold: keep only pathways where the fraction of genes with importance
        below importance_lower_threshold does not exceed importance_gene_fraction_threshold
 
@@ -64,8 +65,8 @@ def filter_top_pathways(
     df = results.copy()
     df = df[df[TARGET_COL] != ALL_CELLS]
 
-    # FDR and corrected effect size filter
-    df = df[(df['fdr'] <= fdr_threshold) & (df['corrected_effect_size'].abs() >= corrected_effect_size_threshold)]
+    # FDR and effect size filter
+    df = df[(df['fdr'] <= fdr_threshold) & (df[effect_size_col].abs() >= corrected_effect_size_threshold)]
 
     # Importance filter
     def passes_importance_filter(row) -> bool:
@@ -377,7 +378,7 @@ def plot_volcano(
     output: str | None = None,
     format: str = 'png',
     target_col: str = TARGET_COL,
-    effect_col: str = "corrected_effect_size",
+    effect_size_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
     ncols: int = 5,
     figsize_per_panel=(3, 3),
@@ -409,7 +410,7 @@ def plot_volcano(
         ax = axes[r, c]
 
         sub = df[df[target_col] == target]
-        x = sub[effect_col].to_numpy()
+        x = sub[effect_size_col].to_numpy()
         y = sub["neglog10_fdr"].to_numpy()
 
         m = np.isfinite(x) & np.isfinite(y)
@@ -435,7 +436,7 @@ def plot_volcano(
         ax.set_xlim((-2, 2))
         ax.set_ylim(bottom=0)
 
-        n_sig = (((sub[effect_col] < -effect_thresh) | (sub[effect_col] > effect_thresh)) & (sub[fdr_col] < fdr_thresh)).sum()
+        n_sig = (((sub[effect_size_col] < -effect_thresh) | (sub[effect_size_col] > effect_thresh)) & (sub[fdr_col] < fdr_thresh)).sum()
         ax.set_title(f"{target} (n_sig={n_sig})", fontsize=9)
         ax.tick_params(labelsize=7)
 
@@ -595,7 +596,9 @@ def plot(
         if target_data is None or results is None:
             continue
 
-        plot_volcano(results, fdr_threshold, corrected_effect_size_threshold, title=target_type, output=output)
+        effect_size_col = 'corrected_effect_size' if 'corrected_effect_size' in results.columns else 'effect_size'  # type: ignore[union-attr]
+
+        plot_volcano(results, fdr_threshold, corrected_effect_size_threshold, effect_size_col=effect_size_col, title=target_type, output=output)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
 
@@ -629,6 +632,7 @@ def plot(
             corrected_effect_size_threshold=corrected_effect_size_threshold,
             importance_lower_threshold=importance_lower_threshold,
             importance_gene_fraction_threshold=importance_gene_fraction_threshold,
+            effect_size_col=effect_size_col
         )
         save_csv(top_pathways, title=f'top_{target_type.replace("-", "_")}_pathways', output_path=output, keep_index=False)
 

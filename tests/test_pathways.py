@@ -103,7 +103,7 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeA', 'Pathway1'),
             self._make_passing_row('TypeB', 'Pathway2'),
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 2)
         self.assertListEqual(list(out.columns), [TARGET_COL, 'set_name'])
 
@@ -113,7 +113,7 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeA', 'Pathway1'),
             {**self._make_passing_row('TypeA', 'Pathway2'), 'fdr': 0.1},  # fails FDR
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 1)
         self.assertEqual(out.iloc[0]['set_name'], 'Pathway1')
 
@@ -123,7 +123,7 @@ class FilterTopPathwaysTest(Test):
             self._make_passing_row('TypeA', 'Pathway1'),
             {**self._make_passing_row('TypeA', 'Pathway2'), 'corrected_effect_size': 0.5},  # fails |es|
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 1)
         self.assertEqual(out.iloc[0]['set_name'], 'Pathway1')
 
@@ -132,7 +132,7 @@ class FilterTopPathwaysTest(Test):
         results = pd.DataFrame([
             {**self._make_passing_row('TypeA', 'Pathway1'), 'corrected_effect_size': -1.5},
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 1)
         self.assertEqual(out.iloc[0]['set_name'], 'Pathway1')
 
@@ -141,7 +141,7 @@ class FilterTopPathwaysTest(Test):
         results = pd.DataFrame([
             {**self._make_passing_row('TypeA', 'Pathway1'), 'corrected_effect_size': -0.5},
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 0)
 
     def test_importance_filter_majority_below_threshold(self):
@@ -151,7 +151,7 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row('TypeA', 'Pathway1'),
              'gene_importances': '0.01; 0.02; 0.01; 0.4'},
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 0)
 
     def test_importance_filter_exactly_half(self):
@@ -161,7 +161,7 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row('TypeA', 'Pathway1'),
              'gene_importances': '0.01; 0.4'},
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 1)
 
     def test_importance_filter_all_above(self):
@@ -170,7 +170,7 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row('TypeA', 'Pathway1'),
              'gene_importances': '0.1; 0.2; 0.3'},
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 1)
 
     def test_all_cells_excluded(self):
@@ -179,14 +179,14 @@ class FilterTopPathwaysTest(Test):
             {**self._make_passing_row(ALL_CELLS, 'Pathway1')},
             self._make_passing_row('TypeA', 'Pathway2'),
         ])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 1)
         self.assertEqual(out.iloc[0][TARGET_COL], 'TypeA')
 
     def test_empty_results(self):
         """Empty input should produce empty output."""
         results = pd.DataFrame(columns=[TARGET_COL, 'set_name', 'fdr', 'corrected_effect_size', 'gene_importances'])
-        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD)
+        out = filter_top_pathways(results, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, 'corrected_effect_size')
         self.assertEqual(len(out), 0)
         self.assertListEqual(list(out.columns), [TARGET_COL, 'set_name'])
 
