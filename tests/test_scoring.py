@@ -212,6 +212,8 @@ class CalculateBackgroundScoresInRealModeTest(Test):
             'background_mode': BackgroundMode.REAL,
             'trim_background': False,
             'verbose': False,
+            'n_estimators': N_ESTIMATORS,
+            'cpus': 1,
         }
 
         with tempfile.TemporaryDirectory() as tmp:
