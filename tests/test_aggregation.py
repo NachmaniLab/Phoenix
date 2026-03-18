@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from unittest.mock import patch
 from scripts.step_4_aggregation import calculate_p_value, evaluate_and_correct_result, aggregate
-from scripts.consts import TARGET_COL, BackgroundMode
+from scripts.consts import TARGET_COL, BackgroundMode, FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD
 from tests.interface import Test
 
 
@@ -177,7 +177,14 @@ class AggregateTest(Test):
         })
         with tempfile.TemporaryDirectory() as tmp:
             aggregate(
-                output='', tmp=tmp, cache='', processes=1,
+                output='',
+                fdr_threshold=FDR_THRESHOLD,
+                corrected_effect_size_threshold=CORRECTED_EFFECT_SIZE_THRESHOLD,
+                importance_lower_threshold=IMPORTANCE_LOWER_THRESHOLD,
+                importance_gene_fraction_threshold=IMPORTANCE_GENE_FRACTION_THRESHOLD,
+                tmp=tmp,
+                cache='',
+                processes=1,
                 background_mode=BackgroundMode.REAL,
                 distribution='normal',
                 repeats=100,

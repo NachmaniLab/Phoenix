@@ -35,7 +35,7 @@ def calculate_pathway_scores(
         cpus: int,
         output: str,
         tmp: str,
-        effect_size_threshold: float | None,
+        effect_size_expression_threshold: float | None,
         expression: pd.DataFrame | str = 'expression', 
         cell_types: pd.DataFrame | str = 'cell_types',
         pseudotime: pd.DataFrame | str = 'pseudotime',
@@ -145,8 +145,8 @@ def calculate_pathway_scores(
     regression = pd.DataFrame(regression_results)
 
     # Add effect size
-    if effect_size_threshold is not None:
-        masked_expression = expression.mask(expression <= effect_size_threshold)  # not scaled
+    if effect_size_expression_threshold is not None:
+        masked_expression = expression.mask(expression <= effect_size_expression_threshold)  # not scaled
     else:
         masked_expression = expression
     if not classification.empty:

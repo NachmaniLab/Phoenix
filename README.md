@@ -127,7 +127,7 @@ Customize background distribution parameters:
 
 Customize effect size calculation parameters:
 
-* `effect_size_threshold`: Expression threshold for effect size calculation. Genes with expression below this value will be masked when computing effect sizes. Default: `None` (no masking).
+* `effect_size_expression_threshold`: Expression threshold for effect size calculation. Genes with expression below this value will be masked when computing effect sizes. Default: `None` (no masking).
 * `corrected_effect_size`: Whether to correct effect size values by target label for better comparability across different cell types or trajectories. Default: `True`.
 
 Include parameters relevant for parallelization on a high-computing cluster, which is highly recommended for large pathway databases. For larger datasets, consider adjusting memory and time resources: 
@@ -206,7 +206,7 @@ The folder specified in `--output` will include the following upon completion of
     * Tables of all gene annotation results: `cell_type_classification.csv` and `pseudotime_regression.csv`
     * Volcano plots: `volcano_cell_types.png` and `volcano_pseudotime.png`
 * **Top results:**
-    * Lists of top gene annotations for each target: `top_cell_types_pathways.csv` and `top_pseudotime_pathways.csv`
+    * Lists of top gene sets for each target based on FDR, effect size and gene importance: `top_cell_types_pathways.csv` and `top_pseudotime_pathways.csv`
     * Target-specific top p-value plots: `p_values_cell_types_prediction.png` and `p_values_pseudotime_prediction.png`
     * Per-result plots in the `pathways` folder under `cell_types` and `pseudotime`
 * **Preprocessed data:** `expression.csv`, `reduction.csv`,   `cell_types.csv`, `pseudotime.csv`, `gene_sets.csv`, and `targets.png`

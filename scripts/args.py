@@ -63,7 +63,7 @@ def parse_run_args() -> argparse.Namespace:
                         help='Seed for reproducibility')
     parser.add_argument('--distribution', type=str, default=DISTRIBUTIONS[0],
                         help='Type of background distribution: ' + ', '.join(DISTRIBUTIONS))
-    parser.add_argument('--effect_size_threshold', type=float, default=EFFECT_SIZE_THRESHOLD,
+    parser.add_argument('--effect_size_expression_threshold', type=float, default=EFFECT_SIZE_EXPRESSION_THRESHOLD,
                         help='Expression threshold for effect size calculation. Genes with expression below this value will be masked. Default: None (no masking)')
     parser.add_argument('--corrected_effect_size', type=str, default='True',
                         help='Whether to correct effect size by target label. Default: True')

@@ -119,7 +119,7 @@ class E2ERunTest(Test):
             'background_mode': background_mode,
             'random_sizes': SIZES,
             'repeats': 2,
-            'effect_size_threshold': None,
+            'effect_size_expression_threshold': None,
             'corrected_effect_size': True,
             'fdr_threshold': FDR_THRESHOLD,
             'corrected_effect_size_threshold': CORRECTED_EFFECT_SIZE_THRESHOLD,

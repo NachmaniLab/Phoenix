@@ -11,7 +11,7 @@ from scipy.cluster import hierarchy
 from scripts.data import sum_gene_expression
 from scripts.utils import define_background, remove_outliers, get_color_mapping, convert_to_sci, convert_from_str
 from scripts.output import load_sizes, read_args, save_plot, get_experiment, get_preprocessed_data, save_csv, load_background_scores
-from scripts.consts import FDR_THRESHOLD, CORRECTED_EFFECT_SIZE_THRESHOLD, IMPORTANCE_LOWER_THRESHOLD, IMPORTANCE_GENE_FRACTION_THRESHOLD, TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
+from scripts.consts import TARGET_COL, ALL_CELLS, OTHER_CELLS, BACKGROUND_COLOR, INTEREST_COLOR, CELL_TYPE_COL, MAP_SIZE, DPI, LEGEND_FONT_SIZE, POINT_SIZE, BackgroundMode
 
 
 sns.set_theme(style='white')
@@ -43,6 +43,49 @@ def get_column_unique_pathways(data, col: str, size: int, threshold: float | Non
 def get_all_column_unique_pathways(data, size: int, threshold: float):
     return [get_column_unique_pathways(data, col, size // data.shape[1], threshold)
             for col in data.columns if col != ALL_CELLS]
+
+
+def filter_top_pathways(
+        results: pd.DataFrame,
+        fdr_threshold: float,
+        corrected_effect_size_threshold: float,
+        importance_lower_threshold: float,
+        importance_gene_fraction_threshold: float,
+    ) -> pd.DataFrame:
+    """
+    Filter pathway-target pairs based on three thresholds:
+    1. FDR threshold: keep only rows with fdr <= fdr_threshold
+    2. Corrected effect size threshold: keep only rows with |corrected_effect_size| >= corrected_effect_size_threshold
+    3. Importance threshold: keep only pathways where the fraction of genes with importance
+       below importance_lower_threshold does not exceed importance_gene_fraction_threshold
+
+    Returns a DataFrame with columns [TARGET_COL, 'set_name'].
+    """
+    df = results.copy()
+    df = df[df[TARGET_COL] != ALL_CELLS]
+
+    # FDR and corrected effect size filter
+    df = df[(df['fdr'] <= fdr_threshold) & (df['corrected_effect_size'].abs() >= corrected_effect_size_threshold)]
+
+    # Importance filter
+    def passes_importance_filter(row) -> bool:
+        importances = convert_from_str(row['gene_importances'])
+        if not isinstance(importances, list):
+            importances = [importances]
+        importances = [float(i) for i in importances]
+        if len(importances) == 0:
+            return False
+        fraction_below = sum(1 for i in importances if i < importance_lower_threshold) / len(importances)
+        return fraction_below <= importance_gene_fraction_threshold
+
+    if not df.empty:
+        mask = df.apply(passes_importance_filter, axis=1)
+        df = df[mask]
+
+    if df.empty:
+        return pd.DataFrame(columns=[TARGET_COL, 'set_name'])
+
+    return df[[TARGET_COL, 'set_name']].reset_index(drop=True)
 
 
 def plot_p_values(
@@ -328,14 +371,14 @@ def _fast_smooth_density(x, y, bins: int = 200, sigma: float = 2.0):
 
 def plot_volcano(
     df: pd.DataFrame,
+    fdr_thresh: float,
+    effect_thresh: float,
     title: str = '',
     output: str | None = None,
     format: str = 'png',
     target_col: str = TARGET_COL,
     effect_col: str = "corrected_effect_size",
     fdr_col: str = "fdr",
-    fdr_thresh: float = FDR_THRESHOLD,
-    effect_thresh: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
     ncols: int = 5,
     figsize_per_panel=(3, 3),
     bins: int = 200,
@@ -515,55 +558,12 @@ def plot_all_cell_types_and_trajectories(
     save_plot('targets', output, format=format)
 
 
-def filter_top_pathways(
-        results: pd.DataFrame,
+def plot(
+        output: str,
         fdr_threshold: float,
         corrected_effect_size_threshold: float,
         importance_lower_threshold: float,
         importance_gene_fraction_threshold: float,
-    ) -> pd.DataFrame:
-    """
-    Filter pathway-target pairs based on three thresholds:
-    1. FDR threshold: keep only rows with fdr <= fdr_threshold
-    2. Corrected effect size threshold: keep only rows with |corrected_effect_size| >= corrected_effect_size_threshold
-    3. Importance threshold: keep only pathways where the fraction of genes with importance
-       below importance_lower_threshold does not exceed importance_gene_fraction_threshold
-
-    Returns a DataFrame with columns [TARGET_COL, 'set_name'].
-    """
-    df = results.copy()
-    df = df[df[TARGET_COL] != ALL_CELLS]
-
-    # FDR and corrected effect size filter
-    df = df[(df['fdr'] <= fdr_threshold) & (df['corrected_effect_size'].abs() >= corrected_effect_size_threshold)]
-
-    # Importance filter
-    def passes_importance_filter(row) -> bool:
-        importances = convert_from_str(row['gene_importances'])
-        if not isinstance(importances, list):
-            importances = [importances]
-        importances = [float(i) for i in importances]
-        if len(importances) == 0:
-            return False
-        fraction_below = sum(1 for i in importances if i < importance_lower_threshold) / len(importances)
-        return fraction_below <= importance_gene_fraction_threshold
-
-    if not df.empty:
-        mask = df.apply(passes_importance_filter, axis=1)
-        df = df[mask]
-
-    if df.empty:
-        return pd.DataFrame(columns=[TARGET_COL, 'set_name'])
-
-    return df[[TARGET_COL, 'set_name']].reset_index(drop=True)
-
-
-def plot(
-        output: str,
-        fdr_threshold: float = FDR_THRESHOLD,
-        corrected_effect_size_threshold: float = CORRECTED_EFFECT_SIZE_THRESHOLD,
-        importance_lower_threshold: float = IMPORTANCE_LOWER_THRESHOLD,
-        importance_gene_fraction_threshold: float = IMPORTANCE_GENE_FRACTION_THRESHOLD,
         args: dict | None = None,
         expression: pd.DataFrame | str = 'expression', 
         reduction: pd.DataFrame | str = 'reduction', 
@@ -595,7 +595,7 @@ def plot(
         if target_data is None or results is None:
             continue
 
-        plot_volcano(results, title=target_type, output=output, fdr_thresh=fdr_threshold, effect_thresh=corrected_effect_size_threshold)
+        plot_volcano(results, fdr_threshold, corrected_effect_size_threshold, title=target_type, output=output)
 
         data = results.pivot(index='set_name', columns=TARGET_COL, values='fdr')  # type: ignore[union-attr]
 

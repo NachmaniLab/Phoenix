@@ -45,7 +45,7 @@ class CalculatePathwayScoresTest(Test):
             'classification_metric': CLASSIFICATION_METRIC,
             'regression_metric': REGRESSION_METRIC,
             'seed': SEED,
-            'effect_size_threshold': None,
+            'effect_size_expression_threshold': None,
             'set_fraction': 1.0,
             'cross_validation': 2,
             'n_estimators': N_ESTIMATORS,
