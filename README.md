@@ -130,9 +130,9 @@ Customize effect size calculation parameters:
 * `effect_size_expression_threshold`: Expression threshold for effect size calculation. Genes with expression below this value will be masked when computing effect sizes. Default: `None` (no masking).
 * `corrected_effect_size`: Whether to correct effect size values by target label for better comparability across different cell types or trajectories. Default: `True`.
 
-Customize top-pathway filtering thresholds (used to produce `top_cell_types_pathways.csv` and `top_pseudotime_pathways.csv`):
+Customize top-pathway filtering thresholds:
 
-* `fdr_threshold`: Maximum FDR (Benjamini-Hochberg adjusted p-value) for a pathway to be included. Default: `0.05`.
+* `fdr_threshold`: Maximum FDR for a pathway to be included. Default: `0.05`.
 * `corrected_effect_size_threshold`: Minimum absolute corrected effect size for a pathway to be included. Default: `1.2`.
 * `importance_lower_threshold`: Gene importance value below which a gene is considered unimportant. Default: `0.05`.
 * `importance_gene_fraction_threshold`: Maximum fraction of genes with importance below `importance_lower_threshold` for a pathway to be included. Default: `0.5`.
