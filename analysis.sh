@@ -12,7 +12,7 @@ python run.py \
     --output Experiments/human_hematopoiesis/output \
     --organism human \
     --pathway_database msigdb \
-    --background_mode real \
+    --background_mode random \
     --repeats 150 \
     --set_fraction 1.0 \
     --min_set_size 2 \
@@ -33,7 +33,7 @@ python run.py \
     --output Experiments/mouse_hematopoiesis/output \
     --organism mouse \
     --pathway_database msigdb \
-    --background_mode real \
+    --background_mode random \
     --repeats 150 \
     --set_fraction 1.0 \
     --min_set_size 2 \
@@ -54,7 +54,7 @@ python run.py \
     --output Experiments/zebrafish_development/output \
     --organism zebrafish \
     --pathway_database go kegg \
-    --background_mode real \
+    --background_mode random \
     --repeats 150 \
     --set_fraction 1.0 \
     --min_set_size 2 \
