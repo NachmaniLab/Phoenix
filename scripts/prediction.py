@@ -153,7 +153,7 @@ def get_prediction_score(
 def compare_scores(pathway_score: float, background_scores: list[float], distribution: str) -> float:
 
     if all([s == pathway_score for s in background_scores]):
-        p_value = np.NaN  # type: ignore[attr-defined]
+        p_value = np.nan
 
     elif distribution == 'normal':
         alternative = 'less'  # background is less than pathway
@@ -168,7 +168,7 @@ def compare_scores(pathway_score: float, background_scores: list[float], distrib
                 shape, loc, scale = stats.gamma.fit(background_scores)
                 p_value = stats.gamma.sf(pathway_score, shape, loc, scale)
         except stats._warnings_errors.FitError:
-            p_value = np.NaN  # type: ignore[attr-defined]
+            p_value = np.nan
         
     else:
         raise ValueError('Unsupported distribution type. Use `normal` or `gamma`')
