@@ -224,4 +224,11 @@ The folder specified in `--output` will include the following upon completion of
 
 ## Analyses and Results
 
-We applied *Phoenix* to datasets on embryonic development and hematopoietic stem cell differentiation across several organisms. The commands used to reproduce the analyses from the paper are available in [`analysis.sh`](analysis.sh), and our [portal](https://nachmanilab.shinyapps.io/phoenix_results) provides easy access to the results.
+We applied *Phoenix* to datasets on embryonic development and hematopoietic stem cell differentiation across several organisms. The commands used to reproduce the analyses from the paper are available in [`analysis.sh`](analysis.sh).
+
+
+## Citation
+
+If you use *Phoenix* in your work, please cite:
+
+Halperin Y., Nachmani D., Rabani M. (2025). A unified analysis of cell-type and trajectory-associated pathways in single-cell data using Phoenix. bioRxiv. https://doi.org/10.1101/2025.09.29.679361
