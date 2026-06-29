@@ -231,4 +231,4 @@ We applied *Phoenix* to datasets on embryonic development and hematopoietic stem
 
 If you use *Phoenix* in your work, please cite:
 
-Halperin Y., Nachmani D., Rabani M. (2025). A unified analysis of cell-type and trajectory-associated pathways in single-cell data using Phoenix. bioRxiv. https://doi.org/10.1101/2025.09.29.679361
+Halperin Y, Nachmani D, Rabani M. A unified analysis of cell-type and trajectory-associated pathways in single-cell data using Phoenix. *Genome Research*. 2026. doi:10.1101/gr.281411.125.
